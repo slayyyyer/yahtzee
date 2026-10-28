@@ -222,8 +222,7 @@ tools/match-solver.js  player-role Match-W solver and exact CPU distribution
 tools/benchmark-matchw.js  hybrid Exact-W/Match-W player benchmark
 tools/benchmark-cpu-matchw.js  CPU-role Match-W head-to-head benchmark
 tools/compare-matchw.js  exact paired policy comparison on late-game states
-tools/render-matchw.js  Match-W SVG chart generator
-tools/render-benchmark.js  benchmark JSON and SVG chart generator
+tools/render-cpu-matchw-charts.js  CPU Match-W SVG chart generator
 tools/tune.js         grid sweep for the fallback weights
 tools/bonus.js        fits the fallback upper-bonus model
 tools/bonus-model.json  the fitted coefficients (also baked into engine.js)
@@ -245,7 +244,7 @@ node tools/benchmark-matchw.js --games=100 --start-round=12  # hybrid player mat
 node tools/benchmark-cpu-matchw.js --games=100 --cpu=matchw  # CPU-role match
 node tools/benchmark-cpu-matchw.js --games=100 --cpu=exact --out=reports/yahtzee-cpu-exact-control-100.json
 node tools/compare-matchw.js --games=50 --start-round=12     # exact paired values
-node tools/render-matchw.js                                  # Match-W charts
+node tools/render-cpu-matchw-charts.js                       # 100-game CPU charts
 ```
 
 The table generator is deterministic. It writes `tools/optimal-table.bin` and

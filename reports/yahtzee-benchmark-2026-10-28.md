@@ -4,6 +4,9 @@
 > commit `de6cf68`, before Match-W was wired into the browser CPU. The current
 > CPU switches to Match-W in rounds 12–13; the 45-game record is therefore a
 > benchmark of the earlier Exact-W endgame, not the current shipped behavior.
+>
+> For the latest measurement of the shipped CPU, see the
+> [100-game CPU Match-W benchmark](yahtzee-cpu-matchw-2026-10-28.md).
 
 **Bottom line:** the 45-game browser benchmark finished **24 wins, 20 losses, 1 tie**. I averaged **256.58** against the computer's **240.76**, a mean margin of **+15.82** points. But the 95% interval on that margin is **−6.41 to +38.05**, so the record is statistically indistinguishable from a coin flip.
 
@@ -64,30 +67,22 @@ The browser's all-time record is **24–21–1**, not 24–20–1: it still incl
 | final 20 | 20 | **14–6** | 253.10 | 238.30 | +14.80 |
 | **all 45** | **45** | **24–20–1** | **256.58** | **240.76** | **+15.82** |
 
-![Cumulative record across 45 games](charts/record-race.svg)
-
 The final 20 games look like a hot streak, and the middle 20 look like a cold streak. The strategy did not change. The middle batch went 6–13–1 despite a *higher* mean margin (+16.15) than the final batch (+14.80) — a reminder that mean score and win/loss record are not the same thing. Close losses and blowout wins can produce a positive average margin with a losing record.
 
 The mean margin is **+15.82**, but the median margin is only **+11**, and the margin standard deviation is **73.99**. One 243-point win (414–171) pulls the average upward. The 95% interval on the mean margin includes zero, and the paired t-statistic is about **1.44** (df 44), so the data do not support a repeatable advantage.
 
 ## Score distribution
 
-![Distribution of final scores](charts/score-distribution.svg)
-
 - Both distributions peak in the **240–259** bin: 14 player games and 13 CPU games.
 - The player has the longer right tail: **2 games of 400+** (414 and 406), **3 of 350+**, and **6 of 300+**. The CPU had **3 games of 300+**, **2 of 350+**, and a maximum of **367**.
 - The CPU had more sub-200 games: **8** versus the player's **4**.
 - The player's larger standard deviation (51.00 vs 45.01) is mostly the Yahtzee-bonus tail. Three extra-Yahtzee bonuses produced 300 player bonus points; the CPU had 200.
-
-![Running mean after each game](charts/running-average.svg)
 
 The running mean shows why the early records were misleading: the 5-game average was 270.2, the 25-game average was 259.4, and the 45-game average settled at 256.6. The 95% band around the running mean narrows as the sample grows, and the final mean sits 2.4 points above the exact value.
 
 The sample mean is close to the 5,000-game seeded self-play mean of **254.16** reported in the README. This 45-game run does not replace that larger measurement; it is a smaller, independent check on the deployed build.
 
 ## Where the points came from
-
-![Average points per category](charts/category-averages.svg)
 
 | box | You | CPU | You − CPU |
 |---|---:|---:|---:|
@@ -192,7 +187,6 @@ Official-rules Yahtzee is a separate case: the published value is **254.5896**, 
 - Raw score arrays and category averages: [yahtzee-benchmark-data-45.json](yahtzee-benchmark-data-45.json).
 - Generated report data: [yahtzee-benchmark-2026-10-28.json](yahtzee-benchmark-2026-10-28.json).
 - 100-game headless data: [yahtzee-verification-100.json](yahtzee-verification-100.json).
-- Chart/table generator: [tools/render-benchmark.js](../tools/render-benchmark.js). Run it with `node tools/render-benchmark.js` (Bun works too).
 - Headless match verifier: [tools/benchmark-match.js](../tools/benchmark-match.js). Run it with `node tools/benchmark-match.js --games=100 --seed=20261028`.
 
 ## Limitations

@@ -45,6 +45,40 @@ The record difference (one game) is noise; the exact state-level result in the
 The control reproduces the earlier Exact-W control exactly
 (`50–50–0`, 253.18 vs 261.77), so the benchmark harness and seed are consistent.
 
+## Charts
+
+![Cumulative player wins against a fair-coin band](charts/cpu-matchw-record-race.svg)
+
+**The record is inside the noise.** Both cumulative lines stay inside the
+pointwise 95% band of a fair coin. Match-W finishes at 51 wins (one above the
+coin's expected 50); the Exact-W control finishes at 50.
+
+![Running mean score by game](charts/cpu-matchw-running-average.svg)
+
+**The CPU's average fell 13.4 points.** Solid lines are the Match-W endgame,
+dashed lines the control. The Match-W CPU ends at 248.36 against the control's
+261.77, while the player's average rises from 253.18 to 261.04. These are
+descriptive because the dice streams are not paired after the first different
+endgame hold.
+
+![Final-score distributions](charts/cpu-matchw-score-distribution.svg)
+
+**The distributions overlap over most of their range.** Both sides have long
+right tails and similar spread (player SD 59.8, CPU SD 60.3). The 12.7-point
+difference in means is a shift within very noisy individual games, not a
+separation of the distributions.
+
+![Margin distribution](charts/cpu-matchw-margin-distribution.svg)
+
+**The average margin is inside the noise.** The most common margin band is
+0 to +39 (32 games), but the 95% CI of the mean margin runs from −2.9 to +28.2
+and crosses zero. The 100-game result alone does not establish a real edge.
+
+Direct links: [record race](charts/cpu-matchw-record-race.svg) ·
+[running means](charts/cpu-matchw-running-average.svg) ·
+[score distributions](charts/cpu-matchw-score-distribution.svg) ·
+[margin distribution](charts/cpu-matchw-margin-distribution.svg).
+
 ## What the result means
 
 Match-W is **not** an expected-score policy. It deliberately gives up points
@@ -82,6 +116,9 @@ node tools/benchmark-cpu-matchw.js --games=100 --seed=20261028 \
 # 100-game Exact-W control
 node tools/benchmark-cpu-matchw.js --games=100 --seed=20261028 \
   --cpu=exact --out=reports/yahtzee-cpu-exact-control-100.json
+
+# rebuild the four charts from the two JSON files
+node tools/render-cpu-matchw-charts.js
 ```
 
 Raw data:

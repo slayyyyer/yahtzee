@@ -1,5 +1,10 @@
 # Match-W endgame solver: exact win probability for the final rounds
 
+> **Current benchmark:** the
+> [100-game CPU Match-W benchmark](yahtzee-cpu-matchw-2026-10-28.md) measures
+> the CPU-role policy now shipped in the browser. This report remains the
+> design reference and the exact state-level evaluation of Match-W.
+
 **Bottom line:** I added a second policy, **Match-W**, that keeps the shipped
 Exact-W strategy early and then switches to exact `P(win) + 0.5 * P(tie)` for
 the final two rounds (12 and 13). It is exact: it enumerates every dice outcome
@@ -155,8 +160,6 @@ When behind, preserving the higher-ceiling box is worth more than the four
 points available now. This is a concrete case where the two policies diverge;
 the exact state-level table above is the aggregate effect.
 
-![Exact Match-W gain over Exact-W](charts/matchw-gain.svg)
-
 ## The 100-game hybrid benchmark
 
 [`tools/benchmark-matchw.js`](../tools/benchmark-matchw.js) uses the same
@@ -183,8 +186,6 @@ Both runs use seed `20261028`, but they are **not paired after the first
 different decision**: a different hold or box consumes a different number of
 dice from the shared stream. The state-level table above is the paired
 measurement; this table is a realistic whole-game sanity check.
-
-![Mean score cost of Match-W](charts/matchw-score-cost.svg)
 
 The player's mean falls by about **5 points** (253.18 to 248.20). That is the
 expected cost of a win-probability policy: it sometimes takes a lower-EV line
