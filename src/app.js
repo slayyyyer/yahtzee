@@ -8,7 +8,14 @@
     return;
   }
 
-  const engine = E.createEngine();
+  const optimalTable = (typeof E.decodeOptimalTable === 'function' &&
+    typeof globalThis.YAHTZEE_OPTIMAL_B64 === 'string')
+    ? E.decodeOptimalTable(globalThis.YAHTZEE_OPTIMAL_B64)
+    : null;
+  if (globalThis.YAHTZEE_OPTIMAL_B64 && !optimalTable) {
+    console.warn('Optimal table failed to decode; using the heuristic fallback.');
+  }
+  const engine = E.createEngine({ optimalTable: optimalTable });
   const CATS = E.CATEGORIES;
   const PLAYER = 0;
   const CPU = 1;
@@ -472,7 +479,7 @@
       ' · ' + countOf(r.ties, 'tie');
     if (room.recordNote) {
       room.recordNote.textContent = (r.wins + r.losses + r.ties) === 0
-        ? 'A near-optimal opponent, trained by self-play.'
+        ? 'Exact optimal play, solved by dynamic programming.'
         : 'This browser: ' + r.wins + 'W · ' + r.losses + 'L · ' + r.ties + 'T';
     }
   }

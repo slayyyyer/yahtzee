@@ -6,10 +6,11 @@
  * distinct five-dice results (order does not matter), so the whole turn can be
  * solved by backward induction in a few milliseconds.
  *
- * The long-term value of the categories that are left over is supplied by a
- * value function over category masks.  It is seeded with the exact solo
- * expected value of every category (computed with the same solver) and
- * calibrated by Monte-Carlo self-play (see tools/train.js).
+ * The long-term value of the categories that are left over comes from a
+ * precomputed exact table over (open boxes, upper total, Yahtzee-bonus flag).
+ * tools/solve-optimal.js builds it by backward induction; under this game's
+ * rules its full-card value is 254.143784.  The old heuristic value function
+ * remains as a fallback when the table has not been loaded.
  *
  * This file is a classic script (no ES modules) so index.html also works when
  * opened straight from disk.
@@ -32,6 +33,7 @@
   const UPPER_BONUS = 35;
   const UPPER_TARGET = 63;
   const YAHTZEE_BONUS = 100;
+  const TABLE_SIZE = 1 << 20;
 
   const FACT = [1, 1, 2, 6, 24, 120, 720];
 
@@ -326,6 +328,30 @@
   }
 
   /**
+   * Values-only variant of solveTurn for offline table generation.  The caller
+   * supplies reusable buffers so hundreds of thousands of states can be solved
+   * without allocating six typed arrays per state.  Returns `scratch.v2`.
+   */
+  function solveTurnValues(model, openCats, termFn, scratch) {
+    const v0 = scratch.v0;
+    const v1 = scratch.v1;
+    const v2 = scratch.v2;
+
+    for (let s = 0; s < N_STATES; s++) {
+      let best = -Infinity;
+      for (let k = 0; k < openCats.length; k++) {
+        const val = termFn(openCats[k], s);
+        if (val > best) best = val;
+      }
+      v0[s] = best;
+    }
+
+    evalLevel(model, v0, v1, scratch.hold1);
+    evalLevel(model, v1, v2, scratch.hold2);
+    return v2;
+  }
+
+  /**
    * Exact expected score of one category played alone with three rolls.  These
    * values seed the future-value model (and are used by the upper-bonus odds).
    */
@@ -389,12 +415,12 @@
   /* Engine                                                             */
   /* ------------------------------------------------------------------ */
 
-  // Future-value model used by the game.  The per-category values were
-  // produced by policy iteration in tools/policy.js: start from the exact
-  // solo expectations, play thousands of seeded self-play games, blend the
-  // observed category yields back in, repeat, and keep the best defender
-  // against two independent seeds.  tools/tune.js then swept the bonus
-  // weight.  Self-play average: ~250 points (perfect play: 254.59).
+  // Fallback future-value model, used only when the exact table is missing.
+  // The per-category values were produced by policy iteration: start from the
+  // exact solo expectations, play thousands of seeded self-play games, blend
+  // the observed category yields back in, repeat, and keep the best defender
+  // against two independent seeds.  tools/tune.js then swept the bonus weight.
+  // This path averaged ~250 points; the exact table averages 254.143784.
   const CALIBRATED_VALUES = [
     1.918,   // ones
     4.5365,  // twos
@@ -440,9 +466,50 @@
     ]
   };
 
+  function tableIndex(bits, upper, y) {
+    const u = upper >= UPPER_TARGET ? UPPER_TARGET : upper;
+    return ((bits * 64) + u) * 2 + (y ? 1 : 0);
+  }
+
+  function usableTable(table) {
+    if (!table || table.length !== TABLE_SIZE) return false;
+    const full = table[tableIndex(8191, 0, 0)];
+    return Number.isFinite(full) && full > 0;
+  }
+
+  /**
+   * Decode the base64 Float32 table produced by tools/solve-optimal.js.
+   * Returns null for missing, malformed, or wrong-sized data.
+   */
+  function decodeOptimalTable(b64) {
+    if (typeof b64 !== 'string' || b64.length === 0) return null;
+    try {
+      let bytes;
+      if (typeof atob === 'function') {
+        const binary = atob(b64);
+        bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      } else if (typeof Buffer !== 'undefined') {
+        const buf = Buffer.from(b64, 'base64');
+        bytes = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+      } else {
+        return null;
+      }
+      if (bytes.length !== TABLE_SIZE * 4) return null;
+      const copy = new Uint8Array(bytes.length);
+      copy.set(bytes);
+      const table = new Float32Array(copy.buffer, 0, TABLE_SIZE);
+      return usableTable(table) ? table : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
   function createEngine(overrides) {
     const model = getModel();
     const tuning = Object.assign({}, DEFAULT_TUNING, overrides || {});
+    const optimalTable = usableTable(overrides && overrides.optimalTable)
+      ? overrides.optimalTable : null;
     const baseValues = (tuning.baseValues && tuning.baseValues.length === N_CATS
       ? tuning.baseValues.slice()
       : Array.from(model.soloEV));
@@ -504,13 +571,18 @@
     }
 
     function futureValue(bits, upper) {
-      if (bits === 0) return 0;
+      if (bits === 0) return upper >= UPPER_TARGET ? UPPER_BONUS : 0;
       const key = bits * 128 + Math.min(upper, UPPER_TARGET);
       let cached = futureCache.get(key);
       if (cached !== undefined) return cached;
       cached = remainingBase(bits) + UPPER_BONUS * tuning.bonusWeight * bonusProbability(bits, upper);
       futureCache.set(key, cached);
       return cached;
+    }
+
+    function futureFor(bits, upper, y) {
+      if (optimalTable) return optimalTable[tableIndex(bits, upper, y)];
+      return futureValue(bits, upper);
     }
 
     function stateFor(dice) {
@@ -551,12 +623,15 @@
       let bits = 0;
       for (let i = 0; i < open.length; i++) bits |= (1 << open[i]);
       const upper = upperScore(card);
-      const extraYahtzee = card.scores && card.scores.yahtzee === 50 ? YAHTZEE_BONUS : 0;
+      const holdsYahtzee = card.scores && card.scores.yahtzee === 50;
+      const y = holdsYahtzee ? 1 : 0;
+      const extraYahtzee = holdsYahtzee ? YAHTZEE_BONUS : 0;
 
       const term = function (ci, s) {
         const sc = model.scores[ci][s];
         const u2 = upper + (ci < 6 ? sc : 0);
-        let value = sc + futureValue(bits & ~(1 << ci), u2);
+        const y2 = ci === 11 ? (sc === 50 ? 1 : 0) : y;
+        let value = sc + futureFor(bits & ~(1 << ci), u2, y2);
         if (extraYahtzee && model.fiveKind[s]) value += extraYahtzee;
         return value;
       };
@@ -615,7 +690,8 @@
         if (ci < 0) return null;
         const sc = model.scores[ci][s];
         const u2 = upper + (ci < 6 ? sc : 0);
-        const future = futureValue(bits & ~(1 << ci), u2);
+        const y2 = ci === 11 ? (sc === 50 ? 1 : 0) : y;
+        const future = futureFor(bits & ~(1 << ci), u2, y2);
         return {
           catId: CAT_IDS[ci],
           catIndex: ci,
@@ -687,6 +763,7 @@
     return {
       model: model,
       tuning: tuning,
+      hasOptimalTable: !!optimalTable,
       soloEV: Array.from(model.soloEV),
       solve: solve,
       scoreFor: scoreFor,
@@ -697,7 +774,8 @@
       futureValue: function (openIds, card) {
         let bits = 0;
         for (let i = 0; i < openIds.length; i++) bits |= (1 << CAT_INDEX[openIds[i]]);
-        return futureValue(bits, upperScore(card));
+        const y = card.scores && card.scores.yahtzee === 50 ? 1 : 0;
+        return futureFor(bits, upperScore(card), y);
       },
       upperScore: upperScore,
       lowerScore: lowerScore,
@@ -715,6 +793,12 @@
 
   return {
     createEngine: createEngine,
+    getModel: getModel,
+    solveTurn: solveTurn,
+    solveTurnValues: solveTurnValues,
+    decodeOptimalTable: decodeOptimalTable,
+    tableIndex: tableIndex,
+    TABLE_SIZE: TABLE_SIZE,
     CATEGORIES: CATEGORIES,
     CAT_IDS: CAT_IDS,
     UPPER_IDS: UPPER_IDS,

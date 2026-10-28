@@ -2,8 +2,9 @@
 
 A one-player, browser-only Yahtzee game. You play against a computer that does
 not rely on canned rules of thumb: for every turn it enumerates every possible
-continuation, values every hold exactly, and plays the long game with a value
-function calibrated by seeded self-play.
+continuation, values every hold exactly, and values the rest of the game with a
+precomputed exact table. Under this game's rules the optimal expected score is
+**254.143784**.
 
 ## Play
 
@@ -60,42 +61,61 @@ The same DP tells the computer whether to **stop early**: if holding all five
 dice is the best option, extra rolls cannot improve the expected total, so it
 banks instead of rolling for the sake of rolling. A solve takes roughly 2 ms.
 
-### 2. A value function for the rest of the game
+### 2. An exact table for the rest of the game
 
 A turn decision is only as good as the value assigned to the boxes that remain.
-The engine uses a per-category value (seeded with the exact solo expectation of
-each box) plus the probability of the 35-point upper bonus:
+That value is precomputed offline. The state is:
 
-- `tools/bonus.js` fits a logistic model of the bonus on **52,000 turn states**
-  from 4,000 self-play games. It predicts the bonus from the points needed, the
-  open upper boxes, the total turn budget and interaction terms. On a held-out
-  seed it scores a Brier of 0.157, versus 0.209 for a normal model of the
-  remaining upper score.
-- The category values went through policy iteration: start from the exact solo
-  expectations, play thousands of seeded games, blend the observed category
-  yields back in, repeat, and keep the variant that holds up on independent
-  seeds.
+- `B` — the 13-bit set of open boxes;
+- `u` — the upper-section total, capped at 63;
+- `y` — 1 only when the Yahtzee box is closed with 50.
 
-The result is a compact model, not a lookup table or a neural network: it is
-transparent, fast enough to run on the main thread, and strong enough to play
-the percentages at every decision point.
+`W(B, u, y)` is the expected score from the start of a turn. The generator
+works backwards by popcount, solving every turn exactly and looking up the
+already-computed states with one fewer box. There are 786,432 reachable states
+in a 1,048,576-entry Float32 array (4 MiB). Under this game's rules the empty
+card is worth **254.143784** expected points.
+
+The table ships in two forms:
+
+- `tools/optimal-table.bin` — the raw Float32 table for the Node tools;
+- `src/optimal-table.js` — the same table as base64, loaded by a script tag so
+  `index.html` still works from `file://` with no fetch.
+
+It is generated reproducibly by [tools/solve-optimal.js](tools/solve-optimal.js),
+which takes about two minutes on 16 worker threads. If the table is missing or
+fails to decode, the engine falls back to the older heuristic: per-category
+values from policy iteration plus a logistic upper-bonus model (`tools/bonus.js`,
+Brier 0.157 versus 0.209 for a normal model of the remaining upper score). The
+fallback is a safety net, not what the shipped game uses.
 
 ### 3. Measured strength
 
-5,000 seeded self-play games with the shipped configuration:
+5,000 seeded self-play games with the exact table
+(`node tools/train.js --games=5000 --optimal`):
 
 | metric | result |
 | --- | --- |
-| mean final score | **250.39** |
-| standard deviation | 61.15 |
-| 95% confidence interval | ±1.69 |
-| upper bonus earned | 64.2% of games |
-| Yahtzee bonus points | 9.9 per game |
-| perfect-play expected score | 254.59 |
+| mean final score | **254.16** |
+| standard deviation | 58.84 |
+| 95% confidence interval | ±1.63 |
+| exact expected value | 254.143784 |
+| upper bonus earned | 67.6% of games |
+| Yahtzee bonus points | 9.38 per game |
 
-That is within roughly 2% of the known optimal expected score, and clearly
-above casual human play (typically around 200). The engine never estimates the
-dice with a random rollout; the randomness comes only from the actual rolls.
+The mean matches the table's exact full-card value within its confidence
+interval. The older heuristic averaged 250.39 with the same trainer (SD 61.15,
+upper bonus 64.2%), so the table is worth about 3.8 points per game.
+
+The official-rules benchmark is **254.5896** (Verhoeff). Official joker rules
+score an extra Yahtzee differently; this game deliberately uses the permissive
+rule documented below, so its exact value is 254.143784, not 254.5896. The
+generator's `--official` mode reproduces the benchmark independently:
+**254.589097**, within 0.0005.
+
+Either way the engine is far above casual human play (typically around 200).
+It never estimates the dice with a random rollout; the randomness comes only
+from the actual rolls.
 
 ### 4. The coach
 
@@ -113,7 +133,8 @@ bonus probability, and the runner-up lines. It is advice, not an autoplayer.
   open box.
 - A five of a kind also counts as a full house (joker rule). The official
   restriction that an extra Yahtzee must use its matching upper box when that
-  box is open is **not** enforced; the joker bonus is always available.
+  box is open is **not** enforced; the +100 bonus is added wherever the roll is
+  banked.
 - A Yahtzee rolled while the Yahtzee box holds 0 does not earn the +100 bonus.
 - Ones through Sixes score the sum of the dice showing that face; Three/Four
   of a Kind sum all five dice; Chance sums all five dice.
@@ -123,15 +144,20 @@ bonus probability, and the runner-up lines. It is advice, not an autoplayer.
 ```
 index.html            page, rules dialog, final-score dialog
 styles.css            felt table, dice, scorecard, responsive layout
-src/engine.js         dice model, exact turn solver, value function, scoring
+src/engine.js         dice model, exact turn solver, table lookup, scoring
+src/optimal-table.js  generated base64 table (about 5.6 MB)
 src/app.js            game flow, AI pacing, coach, scorecard UI, persistence
 icon.svg              app / favicon mark
 pinokio.json          static Pinokio metadata
-tools/test-engine.js  36 correctness checks
+tools/test-engine.js  50 correctness checks
+tools/solve-optimal.js  exact table generator and official validation
+tools/optimal-table.bin  generated raw table (4 MiB)
+tools/load-table.js   loads the raw table for the Node tools
 tools/train.js        seeded self-play evaluation
-tools/tune.js         grid sweep for the value-model weights
-tools/bonus.js        fits the empirical upper-bonus model
+tools/tune.js         grid sweep for the fallback weights
+tools/bonus.js        fits the fallback upper-bonus model
 tools/bonus-model.json  the fitted coefficients (also baked into engine.js)
+docs/plans/2026-10-27-optimal-table.md  implementation plan and results
 ```
 
 ## Development
@@ -139,16 +165,25 @@ tools/bonus-model.json  the fitted coefficients (also baked into engine.js)
 Node 18+ is enough; there are no npm dependencies.
 
 ```bash
-node tools/test-engine.js         # scoring, probabilities, DP and bonus checks
-node tools/train.js --games=3000  # self-play average and per-category report
-node tools/tune.js                # sweep scale / offset / bonus weight
-node tools/bonus.js 4000          # refit the bonus model (writes bonus-model.json)
+node tools/test-engine.js                    # 50 checks
+node tools/train.js --games=5000 --optimal   # exact-table self-play
+node tools/solve-optimal.js --official --workers=16  # benchmark check, no files
+node tools/solve-optimal.js --workers=16     # regenerate the shipped table
+node tools/tune.js                           # sweep fallback weights
+node tools/bonus.js 4000                     # refit the fallback bonus model
 ```
 
+The table generator is deterministic. It writes `tools/optimal-table.bin` and
+`src/optimal-table.js` from the same Float32 array. `--official` runs the
+official-rules DP in Float64 and checks the published **254.5896** value;
+`--strict` records the narrower joker reading (**254.587729**), and
+`--max-pop=2` is a quick smoke run that writes nothing.
+
 The trainer seeds its PRNG, so repeated runs with the same seed are
-reproducible. If you refit `bonus.js`, copy the new `means`, `sds` and
-`coefficients` into `BONUS_MODEL` in [src/engine.js](src/engine.js); the game
-keeps the model inline so it works from `file://` with no fetch.
+reproducible. Without `--optimal` it evaluates the heuristic fallback. If you
+refit `bonus.js`, copy the new `means`, `sds` and `coefficients` into
+`BONUS_MODEL` in [src/engine.js](src/engine.js); the fallback model stays inline
+so the game also works from `file://` with no fetch.
 
 The engine is a classic script (no ES modules), which means double-clicking
 `index.html` works. `localStorage` is wrapped in `try/catch` for browsers that
@@ -156,8 +191,7 @@ restrict storage on file URLs.
 
 ## A note on the numbers
 
-"Projected score" figures are deliberately not shown in the interface. The
-value function is calibrated for *choices*, not for predicting an exact final
-score from an arbitrary mid-game state, and showing a number that looks like a
-score but is not one would be misleading. The coach shows decisions and honest
-probability estimates instead.
+The table gives an exact expected final score, but a single game is still
+dominated by the dice. The interface shows decisions and probabilities rather
+than a projected score, so a lucky or unlucky run is not mistaken for a change
+in the strategy's strength.

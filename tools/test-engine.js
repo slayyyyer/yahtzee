@@ -4,9 +4,11 @@
  */
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 const Engine = require(path.join(__dirname, '..', 'src', 'engine.js'));
+const { loadOptimalTable } = require('./load-table.js');
 
 let passed = 0;
 function ok(name, fn) {
@@ -107,6 +109,25 @@ ok('values are finite for every roll state', () => {
   }
 });
 
+ok('values-only solver matches the full turn solver', () => {
+  const model = engine.model;
+  const open = Engine.CAT_IDS.map(function (id) { return Engine.CAT_INDEX[id]; });
+  const scratch = {
+    v0: new Float64Array(252),
+    v1: new Float64Array(252),
+    v2: new Float64Array(252),
+    hold1: new Int16Array(252),
+    hold2: new Int16Array(252)
+  };
+  const term = function (c, s) { return model.scores[c][s]; };
+  const full = Engine.solveTurn(model, open, term);
+  const values = Engine.solveTurnValues(model, open, term, scratch);
+  assert.strictEqual(values, scratch.v2);
+  for (let s = 0; s < 252; s++) {
+    assert.ok(Math.abs(values[s] - full.v2[s]) < 1e-12, 'state ' + s);
+  }
+});
+
 console.log('Cards and bonuses');
 ok('upper bonus at 63', () => {
   const card = Engine.blankCard();
@@ -153,6 +174,154 @@ ok('bonus probability is monotone in the upper total', () => {
   const pHigh = engine.bonusChance(open, high);
   assert.ok(pHigh > pLow, pLow + ' -> ' + pHigh);
   assert.ok(pLow >= 0 && pHigh <= 1);
+});
+
+console.log('Optimal table wiring');
+function tableSlot(bits, upper, y) {
+  return ((bits * 64) + upper) * 2 + y;
+}
+function upperCard(total) {
+  const card = Engine.blankCard();
+  card.scores.sixes = total; // upperScore is all these tests read
+  return card;
+}
+
+ok('table decoder rejects missing or malformed data', () => {
+  assert.strictEqual(Engine.decodeOptimalTable(null), null);
+  assert.strictEqual(Engine.decodeOptimalTable('not-base64'), null);
+  assert.strictEqual(Engine.decodeOptimalTable(Buffer.alloc(4).toString('base64')), null);
+});
+
+ok('table decoder reads a valid base64 table', () => {
+  const bytes = Buffer.alloc(1048576 * 4);
+  const view = new Float32Array(bytes.buffer, bytes.byteOffset, 1048576);
+  view[tableSlot(1 << 12, 0, 0)] = 123.5;
+  view[tableSlot(0, 63, 0)] = 35;
+  view[tableSlot(8191, 0, 0)] = 254;
+  const decoded = Engine.decodeOptimalTable(bytes.toString('base64'));
+  assert.ok(decoded instanceof Float32Array);
+  assert.strictEqual(decoded.length, 1048576);
+  assert.ok(Math.abs(decoded[tableSlot(1 << 12, 0, 0)] - 123.5) < 1e-4);
+});
+
+ok('table engine uses the injected W value and fallback does not', () => {
+  const fake = new Float32Array(1048576);
+  fake[tableSlot(1 << 12, 0, 0)] = 123.5;
+  fake[tableSlot(0, 63, 0)] = 35;
+  fake[tableSlot(8191, 0, 0)] = 254;
+  const withTable = Engine.createEngine({ optimalTable: fake });
+  const without = Engine.createEngine({ optimalTable: null });
+  assert.strictEqual(withTable.hasOptimalTable, true);
+  assert.strictEqual(without.hasOptimalTable, false);
+  assert.ok(Math.abs(withTable.futureValue(['chance'], Engine.blankCard()) - 123.5) < 1e-4);
+  assert.ok(Math.abs(without.futureValue(['chance'], Engine.blankCard()) - 123.5) > 1);
+  assert.strictEqual(withTable.futureValue([], upperCard(63)), 35);
+});
+
+ok('wrong-length tables fall back to the heuristic', () => {
+  const ignored = Engine.createEngine({ optimalTable: new Float32Array(10) });
+  assert.strictEqual(ignored.hasOptimalTable, false);
+});
+
+ok('fallback includes the upper bonus on the last box', () => {
+  const without = Engine.createEngine({ optimalTable: null });
+  assert.strictEqual(without.futureValue([], upperCard(63)), 35);
+  assert.strictEqual(without.futureValue([], upperCard(62)), 0);
+});
+
+console.log('Generated repo table');
+const table = loadOptimalTable();
+const tableEngine = table ? Engine.createEngine({ optimalTable: table }) : null;
+const REPO_FULL_VALUE = 254.143784;
+
+ok('generated table exists with the expected size', () => {
+  assert.ok(table instanceof Float32Array, 'tools/optimal-table.bin is missing');
+  assert.strictEqual(table.length, 1048576);
+  assert.strictEqual(tableEngine.hasOptimalTable, true);
+});
+
+ok('shipped base64 matches the binary table', () => {
+  const script = path.join(__dirname, '..', 'src', 'optimal-table.js');
+  assert.ok(fs.existsSync(script), 'src/optimal-table.js is missing');
+  require(script);
+  const decoded = Engine.decodeOptimalTable(globalThis.YAHTZEE_OPTIMAL_B64);
+  assert.ok(decoded instanceof Float32Array);
+  for (let i = 0; i < table.length; i++) {
+    if (decoded[i] !== table[i]) assert.fail('table mismatch at slot ' + i);
+  }
+});
+
+ok('terminal table values include the upper bonus', () => {
+  assert.ok(Math.abs(table[tableSlot(0, 63, 0)] - 35) < 1e-6);
+  assert.ok(Math.abs(table[tableSlot(0, 63, 1)] - 35) < 1e-6);
+  assert.strictEqual(table[tableSlot(0, 62, 0)], 0);
+  assert.strictEqual(table[tableSlot(0, 62, 1)], 0);
+});
+
+ok('full-card value matches the generator', () => {
+  assert.ok(Math.abs(table[tableSlot(8191, 0, 0)] - REPO_FULL_VALUE) < 1e-3,
+    'W(8191,0,0)=' + table[tableSlot(8191, 0, 0)]);
+});
+
+ok('every single open box matches its solo expectation', () => {
+  for (let ci = 0; ci < Engine.CAT_IDS.length; ci++) {
+    const value = table[tableSlot(1 << ci, 0, 0)];
+    assert.ok(Math.abs(value - tableEngine.soloEV[ci]) < 1e-3,
+      Engine.CAT_IDS[ci] + ': ' + value + ' vs ' + tableEngine.soloEV[ci]);
+  }
+});
+
+ok('table values are finite and non-negative', () => {
+  for (let i = 0; i < table.length; i++) {
+    assert.ok(Number.isFinite(table[i]), 'slot ' + i);
+    assert.ok(table[i] >= 0, 'slot ' + i + '=' + table[i]);
+  }
+});
+
+ok('more upper points never reduce the table value', () => {
+  const masks = [8191 & ~(1 << 11), 8191, (1 << 12) | (1 << 6) | (1 << 0)];
+  for (const bits of masks) {
+    const limited = bits === 8191 ? [0, 1, 10, 30, 62] : null;
+    const ys = bits === 8191 ? [0] : [0, 1];
+    for (const y of ys) {
+      for (let u = 0; u < 63; u++) {
+        if (limited && limited.indexOf(u) === -1 && u !== 62) continue;
+        const low = table[tableSlot(bits, u, y)];
+        const high = table[tableSlot(bits, u + 1, y)];
+        assert.ok(high >= low - 1e-2, 'bits=' + bits + ' y=' + y + ' u=' + u);
+      }
+    }
+  }
+});
+
+ok('exact and heuristic engines make legal mid-game decisions', () => {
+  const card = Engine.blankCard();
+  card.scores.ones = 3;
+  card.scores.twos = 6;
+  card.scores.threes = 9;
+  card.scores.fours = 12;
+  card.scores.fives = 15;
+  card.scores.sixes = 18;
+  card.scores.threeKind = 21;
+  card.scores.yahtzee = 50;
+  const open = Engine.openCategories(card);
+  const exact = tableEngine.solve(open, card);
+  const heuristic = engine.solve(open, card);
+
+  let bits = 0;
+  for (const id of open) bits |= 1 << Engine.CAT_INDEX[id];
+  assert.ok(Math.abs(tableEngine.futureValue(open, card) - table[tableSlot(bits, 63, 1)]) < 1e-6);
+
+  for (const dice of [[4, 4, 4, 4, 4], [1, 2, 3, 4, 6], [6, 6, 2, 3, 5]]) {
+    const a = exact.bestCategory(dice);
+    const b = heuristic.bestCategory(dice);
+    assert.ok(a && open.indexOf(a.catId) !== -1, 'exact choice');
+    assert.ok(b && open.indexOf(b.catId) !== -1, 'heuristic choice');
+    assert.ok(Number.isFinite(exact.expected) && exact.expected > 0);
+    assert.ok(Number.isFinite(heuristic.expected) && heuristic.expected > 0);
+    assert.ok(Math.abs(exact.expected - heuristic.expected) < 20,
+      'expected values diverged: ' + exact.expected + ' vs ' + heuristic.expected);
+  }
 });
 
 console.log('\n' + passed + ' checks passed' + (process.exitCode ? ' (with failures)' : '.'));

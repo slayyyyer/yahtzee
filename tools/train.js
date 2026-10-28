@@ -11,6 +11,7 @@
 
 const path = require('path');
 const Engine = require(path.join(__dirname, '..', 'src', 'engine.js'));
+const { loadOptimalTable } = require('./load-table.js');
 
 const CATS = Engine.CAT_IDS;
 
@@ -122,8 +123,10 @@ function summarize(stats) {
   };
 }
 
-function run(games, tuning, seed) {
-  const engine = Engine.createEngine(tuning);
+function run(games, tuning, seed, optimalTable) {
+  const engine = Engine.createEngine(Object.assign({}, tuning, {
+    optimalTable: optimalTable || null
+  }));
   const rng = mulberry32(seed);
   const stats = newStats();
   const t0 = Date.now();
@@ -133,9 +136,10 @@ function run(games, tuning, seed) {
 }
 
 function parseArgs(argv) {
-  const opts = { games: 300, seed: 20261027 };
+  const opts = { games: 300, seed: 20261027, optimal: false };
   const tuning = {};
   for (const arg of argv) {
+    if (arg === '--optimal') { opts.optimal = true; continue; }
     const m = arg.match(/^--([\w]+)=(.+)$/);
     if (!m) continue;
     const key = m[1];
@@ -152,6 +156,13 @@ function parseArgs(argv) {
 
 function main() {
   const { opts, tuning } = parseArgs(process.argv.slice(2));
+  const optimalTable = opts.optimal ? loadOptimalTable() : null;
+  if (opts.optimal && !optimalTable) {
+    console.error('No optimal table found at tools/optimal-table.bin. Run tools/solve-optimal.js first.');
+    process.exitCode = 1;
+    return;
+  }
+
   const engine = Engine.createEngine({});
   console.log('Solo expected values (exact, 3 rolls):');
   const solo = engine.soloEV;
@@ -164,8 +175,9 @@ function main() {
   console.log('\nDice model: ' + engine.model.stateCounts.length + ' states, ' +
     engine.model.keeps.length + ' hold patterns');
 
-  console.log('\nEvaluating ' + opts.games + ' games with', JSON.stringify(tuning));
-  const out = run(opts.games, tuning, opts.seed);
+  console.log('\nTable: ' + (optimalTable ? 'exact optimal' : 'heuristic fallback'));
+  console.log('Evaluating ' + opts.games + ' games with', JSON.stringify(tuning));
+  const out = run(opts.games, tuning, opts.seed, optimalTable);
   console.log(JSON.stringify(out, null, 2));
 }
 
