@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "title": "Yahtzee exact-AI benchmark",
+    "date": "2026-10-28",
+    "site": "https://slayyyyer.github.io/yahtzee/",
+    "commit": "de6cf681dd5148319d9b0d698c9607ee101c7a22",
+    "strategy": "Exact optimal holds and category choices from the shipped W table; the same solver the computer uses.",
+    "rules": "Repo rules: +35 upper bonus at 63; +100 extra Yahtzee after a 50; an extra Yahtzee may be banked in any open box.",
+    "sample": "45 complete 13-round games on the deployed GitHub Pages build.",
+    "sessions": [
+      {
+        "label": "initial sample",
+        "games": 5,
+        "record": { "wins": 4, "losses": 1, "ties": 0 }
+      },
+      {
+        "label": "middle 20",
+        "games": 20,
+        "record": { "wins": 6, "losses": 13, "ties": 1 }
+      },
+      {
+        "label": "final 20",
+        "games": 20,
+        "record": { "wins": 14, "losses": 6, "ties": 0 }
+      }
+    ],
+    "note": "The browser's all-time record has one extra loss from the earlier 94-217 verification game; the 45 benchmark games themselves are 24-20-1.",
+    "harness": "Browser automation clicked real controls and used the page's exact solver. The later batches accelerated animation timers; dice generation, solver decisions, scoring and turn order were unchanged."
+  },
+  "arrays": {
+    "player": [291, 293, 244, 264, 259, 414, 232, 237, 235, 225, 225, 276, 406, 253, 245, 169, 165, 196, 245, 200, 276, 272, 230, 365, 267, 254, 257, 243, 187, 253, 224, 256, 245, 240, 325, 272, 322, 301, 244, 288, 206, 210, 240, 234, 261],
+    "cpu": [217, 196, 352, 251, 242, 171, 217, 217, 269, 246, 247, 214, 198, 259, 245, 178, 273, 243, 248, 270, 282, 289, 238, 238, 268, 154, 149, 232, 257, 216, 246, 271, 161, 225, 240, 243, 289, 255, 367, 272, 231, 319, 239, 210, 190],
+    "playerUpper": [70, 63, 66, 71, 64, 69, 69, 57, 63, 65, 63, 71, 64, 72, 65, 54, 62, 54, 68, 60, 65, 64, 68, 52, 65, 52, 65, 56, 51, 56, 53, 65, 69, 64, 65, 71, 65, 65, 55, 65, 63, 49, 58, 65, 66],
+    "cpuUpper": [59, 41, 60, 66, 67, 57, 57, 50, 68, 67, 68, 61, 64, 63, 65, 65, 66, 63, 70, 71, 65, 64, 69, 63, 69, 51, 62, 38, 56, 53, 57, 66, 60, 64, 66, 58, 63, 64, 67, 67, 62, 71, 66, 52, 65]
+  },
+  "categoryAverages": {
+    "player": {
+      "ones": 1.911111,
+      "twos": 5.155556,
+      "threes": 8.6,
+      "fours": 11.733333,
+      "fives": 15.444444,
+      "sixes": 19.866667,
+      "threeKind": 22.288889,
+      "fourKind": 14.066667,
+      "fullHouse": 22.777778,
+      "smallStraight": 29.333333,
+      "largeStraight": 35.555556,
+      "yahtzee": 16.666667,
+      "chance": 22.4
+    },
+    "cpu": {
+      "ones": 2.022222,
+      "twos": 5.555556,
+      "threes": 8.666667,
+      "fours": 11.644444,
+      "fives": 14.555556,
+      "sixes": 19.466667,
+      "threeKind": 20.644444,
+      "fourKind": 10.555556,
+      "fullHouse": 22.777778,
+      "smallStraight": 30,
+      "largeStraight": 33.777778,
+      "yahtzee": 13.333333,
+      "chance": 21.533333
+    }
+  },
+  "bonusCounts": {
+    "playerUpperBonus": 31,
+    "cpuUpperBonus": 28,
+    "playerYahtzee50": 15,
+    "cpuYahtzee50": 12,
+    "playerYahtzeeBonusPoints": 300,
+    "cpuYahtzeeBonusPoints": 200
+  },
+  "counts": {
+    "player300": 6,
+    "player350": 3,
+    "player400": 2,
+    "cpu300": 3,
+    "cpu350": 2,
+    "playerUnder200": 4,
+    "cpuUnder200": 8,
+    "margin50": 11,
+    "marginLoss50": 6
+  },
+  "progressionMean": {
+    "player": [20.4, 39.177778, 58.933333, 76.777778, 98.266667, 116.488889, 132.622222, 152.977778, 172.533333, 198.4, 220.866667, 240.733333, 256.577778],
+    "cpu": [17.422222, 41.111111, 62.044444, 82.955556, 103.733333, 121.644444, 138.355556, 154.488889, 171.533333, 195.466667, 211.355556, 227.111111, 240.755556]
+  },
+  "progressionSd": {
+    "player": [11.995075, 14.929058, 19.393532, 23.673815, 26.237898, 30.749444, 29.50677, 32.436994, 36.234464, 35.394144, 37.447903, 44.98909, 50.995316],
+    "cpu": [11.095636, 15.619368, 19.522662, 28.638781, 27.813829, 28.490952, 32.256187, 30.91015, 32.969407, 37.255628, 41.363222, 46.088463, 45.005634]
+  }
+}

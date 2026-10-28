@@ -1,0 +1,923 @@
+{
+  "meta": {
+    "title": "Yahtzee exact-AI benchmark",
+    "date": "2026-10-28",
+    "site": "https://slayyyyer.github.io/yahtzee/",
+    "commit": "de6cf681dd5148319d9b0d698c9607ee101c7a22",
+    "strategy": "Exact optimal holds and category choices from the shipped W table; the same solver the computer uses.",
+    "rules": "Repo rules: +35 upper bonus at 63; +100 extra Yahtzee after a 50; an extra Yahtzee may be banked in any open box.",
+    "sample": "45 complete 13-round games on the deployed GitHub Pages build.",
+    "sessions": [
+      {
+        "label": "initial sample",
+        "games": 5,
+        "record": {
+          "wins": 4,
+          "losses": 1,
+          "ties": 0
+        }
+      },
+      {
+        "label": "middle 20",
+        "games": 20,
+        "record": {
+          "wins": 6,
+          "losses": 13,
+          "ties": 1
+        }
+      },
+      {
+        "label": "final 20",
+        "games": 20,
+        "record": {
+          "wins": 14,
+          "losses": 6,
+          "ties": 0
+        }
+      }
+    ],
+    "note": "The browser's all-time record has one extra loss from the earlier 94-217 verification game; the 45 benchmark games themselves are 24-20-1.",
+    "harness": "Browser automation clicked real controls and used the page's exact solver. The later batches accelerated animation timers; dice generation, solver decisions, scoring and turn order were unchanged.",
+    "benchmarkRecord": {
+      "wins": 24,
+      "losses": 20,
+      "ties": 1
+    },
+    "allTimeRecord": {
+      "wins": 24,
+      "losses": 21,
+      "ties": 1
+    }
+  },
+  "summary": {
+    "n": 45,
+    "record": {
+      "wins": 24,
+      "losses": 20,
+      "ties": 1
+    },
+    "browserRecord": {
+      "wins": 24,
+      "losses": 21,
+      "ties": 1
+    },
+    "winRate": 53.33,
+    "exactEV": 254.143784,
+    "player": {
+      "mean": 256.5778,
+      "sd": 50.9953,
+      "se": 7.6019,
+      "median": 245,
+      "min": 165,
+      "max": 414,
+      "q1": 232,
+      "q3": 272,
+      "ci95": [
+        241.2571,
+        271.8985
+      ]
+    },
+    "cpu": {
+      "mean": 240.7556,
+      "sd": 45.0056,
+      "se": 6.709,
+      "median": 243,
+      "min": 149,
+      "max": 367,
+      "q1": 217,
+      "q3": 268,
+      "ci95": [
+        227.2344,
+        254.2767
+      ]
+    },
+    "margin": {
+      "mean": 15.8222,
+      "sd": 73.985,
+      "se": 11.029,
+      "median": 11,
+      "min": -123,
+      "max": 243,
+      "q1": -21,
+      "q3": 46,
+      "ci95": [
+        -6.4053,
+        38.0498
+      ],
+      "t": 1.435
+    },
+    "sessions": [
+      {
+        "label": "initial sample",
+        "games": 5,
+        "record": {
+          "wins": 4,
+          "losses": 1,
+          "ties": 0
+        },
+        "playerMean": 270.2,
+        "cpuMean": 251.6,
+        "marginMean": 18.6
+      },
+      {
+        "label": "middle 20",
+        "games": 20,
+        "record": {
+          "wins": 6,
+          "losses": 13,
+          "ties": 1
+        },
+        "playerMean": 256.65,
+        "cpuMean": 240.5,
+        "marginMean": 16.15
+      },
+      {
+        "label": "final 20",
+        "games": 20,
+        "record": {
+          "wins": 14,
+          "losses": 6,
+          "ties": 0
+        },
+        "playerMean": 253.1,
+        "cpuMean": 238.3,
+        "marginMean": 14.8
+      }
+    ],
+    "boxes": {
+      "player": {
+        "upper": 62.711,
+        "lower": 163.089,
+        "total": 225.8
+      },
+      "cpu": {
+        "upper": 61.911,
+        "lower": 152.622,
+        "total": 214.533
+      }
+    },
+    "bonuses": {
+      "playerUpperBonusGames": 31,
+      "cpuUpperBonusGames": 28,
+      "playerUpperBonusPointsPerGame": 24.111,
+      "cpuUpperBonusPointsPerGame": 21.778,
+      "playerYahtzee50": 15,
+      "cpuYahtzee50": 12,
+      "playerYahtzeeBonusPoints": 300,
+      "cpuYahtzeeBonusPoints": 200,
+      "playerYahtzeeBonusPerGame": 6.667,
+      "cpuYahtzeeBonusPerGame": 4.444
+    },
+    "counts": {
+      "player300": 6,
+      "player350": 3,
+      "player400": 2,
+      "cpu300": 3,
+      "cpu350": 2,
+      "playerUnder200": 4,
+      "cpuUnder200": 8,
+      "margin50": 11,
+      "marginLoss50": 6
+    },
+    "categoryAverages": {
+      "player": {
+        "ones": 1.911111,
+        "twos": 5.155556,
+        "threes": 8.6,
+        "fours": 11.733333,
+        "fives": 15.444444,
+        "sixes": 19.866667,
+        "threeKind": 22.288889,
+        "fourKind": 14.066667,
+        "fullHouse": 22.777778,
+        "smallStraight": 29.333333,
+        "largeStraight": 35.555556,
+        "yahtzee": 16.666667,
+        "chance": 22.4
+      },
+      "cpu": {
+        "ones": 2.022222,
+        "twos": 5.555556,
+        "threes": 8.666667,
+        "fours": 11.644444,
+        "fives": 14.555556,
+        "sixes": 19.466667,
+        "threeKind": 20.644444,
+        "fourKind": 10.555556,
+        "fullHouse": 22.777778,
+        "smallStraight": 30,
+        "largeStraight": 33.777778,
+        "yahtzee": 13.333333,
+        "chance": 21.533333
+      }
+    },
+    "categoryDifferences": {
+      "ones": -0.111,
+      "twos": -0.4,
+      "threes": -0.067,
+      "fours": 0.089,
+      "fives": 0.889,
+      "sixes": 0.4,
+      "threeKind": 1.644,
+      "fourKind": 3.511,
+      "fullHouse": 0,
+      "smallStraight": -0.667,
+      "largeStraight": 1.778,
+      "yahtzee": 3.333,
+      "chance": 0.867
+    }
+  },
+  "games": [
+    {
+      "id": 1,
+      "player": 291,
+      "cpu": 217,
+      "margin": 74,
+      "result": "win",
+      "playerUpper": 70,
+      "cpuUpper": 59
+    },
+    {
+      "id": 2,
+      "player": 293,
+      "cpu": 196,
+      "margin": 97,
+      "result": "win",
+      "playerUpper": 63,
+      "cpuUpper": 41
+    },
+    {
+      "id": 3,
+      "player": 244,
+      "cpu": 352,
+      "margin": -108,
+      "result": "loss",
+      "playerUpper": 66,
+      "cpuUpper": 60
+    },
+    {
+      "id": 4,
+      "player": 264,
+      "cpu": 251,
+      "margin": 13,
+      "result": "win",
+      "playerUpper": 71,
+      "cpuUpper": 66
+    },
+    {
+      "id": 5,
+      "player": 259,
+      "cpu": 242,
+      "margin": 17,
+      "result": "win",
+      "playerUpper": 64,
+      "cpuUpper": 67
+    },
+    {
+      "id": 6,
+      "player": 414,
+      "cpu": 171,
+      "margin": 243,
+      "result": "win",
+      "playerUpper": 69,
+      "cpuUpper": 57
+    },
+    {
+      "id": 7,
+      "player": 232,
+      "cpu": 217,
+      "margin": 15,
+      "result": "win",
+      "playerUpper": 69,
+      "cpuUpper": 57
+    },
+    {
+      "id": 8,
+      "player": 237,
+      "cpu": 217,
+      "margin": 20,
+      "result": "win",
+      "playerUpper": 57,
+      "cpuUpper": 50
+    },
+    {
+      "id": 9,
+      "player": 235,
+      "cpu": 269,
+      "margin": -34,
+      "result": "loss",
+      "playerUpper": 63,
+      "cpuUpper": 68
+    },
+    {
+      "id": 10,
+      "player": 225,
+      "cpu": 246,
+      "margin": -21,
+      "result": "loss",
+      "playerUpper": 65,
+      "cpuUpper": 67
+    },
+    {
+      "id": 11,
+      "player": 225,
+      "cpu": 247,
+      "margin": -22,
+      "result": "loss",
+      "playerUpper": 63,
+      "cpuUpper": 68
+    },
+    {
+      "id": 12,
+      "player": 276,
+      "cpu": 214,
+      "margin": 62,
+      "result": "win",
+      "playerUpper": 71,
+      "cpuUpper": 61
+    },
+    {
+      "id": 13,
+      "player": 406,
+      "cpu": 198,
+      "margin": 208,
+      "result": "win",
+      "playerUpper": 64,
+      "cpuUpper": 64
+    },
+    {
+      "id": 14,
+      "player": 253,
+      "cpu": 259,
+      "margin": -6,
+      "result": "loss",
+      "playerUpper": 72,
+      "cpuUpper": 63
+    },
+    {
+      "id": 15,
+      "player": 245,
+      "cpu": 245,
+      "margin": 0,
+      "result": "tie",
+      "playerUpper": 65,
+      "cpuUpper": 65
+    },
+    {
+      "id": 16,
+      "player": 169,
+      "cpu": 178,
+      "margin": -9,
+      "result": "loss",
+      "playerUpper": 54,
+      "cpuUpper": 65
+    },
+    {
+      "id": 17,
+      "player": 165,
+      "cpu": 273,
+      "margin": -108,
+      "result": "loss",
+      "playerUpper": 62,
+      "cpuUpper": 66
+    },
+    {
+      "id": 18,
+      "player": 196,
+      "cpu": 243,
+      "margin": -47,
+      "result": "loss",
+      "playerUpper": 54,
+      "cpuUpper": 63
+    },
+    {
+      "id": 19,
+      "player": 245,
+      "cpu": 248,
+      "margin": -3,
+      "result": "loss",
+      "playerUpper": 68,
+      "cpuUpper": 70
+    },
+    {
+      "id": 20,
+      "player": 200,
+      "cpu": 270,
+      "margin": -70,
+      "result": "loss",
+      "playerUpper": 60,
+      "cpuUpper": 71
+    },
+    {
+      "id": 21,
+      "player": 276,
+      "cpu": 282,
+      "margin": -6,
+      "result": "loss",
+      "playerUpper": 65,
+      "cpuUpper": 65
+    },
+    {
+      "id": 22,
+      "player": 272,
+      "cpu": 289,
+      "margin": -17,
+      "result": "loss",
+      "playerUpper": 64,
+      "cpuUpper": 64
+    },
+    {
+      "id": 23,
+      "player": 230,
+      "cpu": 238,
+      "margin": -8,
+      "result": "loss",
+      "playerUpper": 68,
+      "cpuUpper": 69
+    },
+    {
+      "id": 24,
+      "player": 365,
+      "cpu": 238,
+      "margin": 127,
+      "result": "win",
+      "playerUpper": 52,
+      "cpuUpper": 63
+    },
+    {
+      "id": 25,
+      "player": 267,
+      "cpu": 268,
+      "margin": -1,
+      "result": "loss",
+      "playerUpper": 65,
+      "cpuUpper": 69
+    },
+    {
+      "id": 26,
+      "player": 254,
+      "cpu": 154,
+      "margin": 100,
+      "result": "win",
+      "playerUpper": 52,
+      "cpuUpper": 51
+    },
+    {
+      "id": 27,
+      "player": 257,
+      "cpu": 149,
+      "margin": 108,
+      "result": "win",
+      "playerUpper": 65,
+      "cpuUpper": 62
+    },
+    {
+      "id": 28,
+      "player": 243,
+      "cpu": 232,
+      "margin": 11,
+      "result": "win",
+      "playerUpper": 56,
+      "cpuUpper": 38
+    },
+    {
+      "id": 29,
+      "player": 187,
+      "cpu": 257,
+      "margin": -70,
+      "result": "loss",
+      "playerUpper": 51,
+      "cpuUpper": 56
+    },
+    {
+      "id": 30,
+      "player": 253,
+      "cpu": 216,
+      "margin": 37,
+      "result": "win",
+      "playerUpper": 56,
+      "cpuUpper": 53
+    },
+    {
+      "id": 31,
+      "player": 224,
+      "cpu": 246,
+      "margin": -22,
+      "result": "loss",
+      "playerUpper": 53,
+      "cpuUpper": 57
+    },
+    {
+      "id": 32,
+      "player": 256,
+      "cpu": 271,
+      "margin": -15,
+      "result": "loss",
+      "playerUpper": 65,
+      "cpuUpper": 66
+    },
+    {
+      "id": 33,
+      "player": 245,
+      "cpu": 161,
+      "margin": 84,
+      "result": "win",
+      "playerUpper": 69,
+      "cpuUpper": 60
+    },
+    {
+      "id": 34,
+      "player": 240,
+      "cpu": 225,
+      "margin": 15,
+      "result": "win",
+      "playerUpper": 64,
+      "cpuUpper": 64
+    },
+    {
+      "id": 35,
+      "player": 325,
+      "cpu": 240,
+      "margin": 85,
+      "result": "win",
+      "playerUpper": 65,
+      "cpuUpper": 66
+    },
+    {
+      "id": 36,
+      "player": 272,
+      "cpu": 243,
+      "margin": 29,
+      "result": "win",
+      "playerUpper": 71,
+      "cpuUpper": 58
+    },
+    {
+      "id": 37,
+      "player": 322,
+      "cpu": 289,
+      "margin": 33,
+      "result": "win",
+      "playerUpper": 65,
+      "cpuUpper": 63
+    },
+    {
+      "id": 38,
+      "player": 301,
+      "cpu": 255,
+      "margin": 46,
+      "result": "win",
+      "playerUpper": 65,
+      "cpuUpper": 64
+    },
+    {
+      "id": 39,
+      "player": 244,
+      "cpu": 367,
+      "margin": -123,
+      "result": "loss",
+      "playerUpper": 55,
+      "cpuUpper": 67
+    },
+    {
+      "id": 40,
+      "player": 288,
+      "cpu": 272,
+      "margin": 16,
+      "result": "win",
+      "playerUpper": 65,
+      "cpuUpper": 67
+    },
+    {
+      "id": 41,
+      "player": 206,
+      "cpu": 231,
+      "margin": -25,
+      "result": "loss",
+      "playerUpper": 63,
+      "cpuUpper": 62
+    },
+    {
+      "id": 42,
+      "player": 210,
+      "cpu": 319,
+      "margin": -109,
+      "result": "loss",
+      "playerUpper": 49,
+      "cpuUpper": 71
+    },
+    {
+      "id": 43,
+      "player": 240,
+      "cpu": 239,
+      "margin": 1,
+      "result": "win",
+      "playerUpper": 58,
+      "cpuUpper": 66
+    },
+    {
+      "id": 44,
+      "player": 234,
+      "cpu": 210,
+      "margin": 24,
+      "result": "win",
+      "playerUpper": 65,
+      "cpuUpper": 52
+    },
+    {
+      "id": 45,
+      "player": 261,
+      "cpu": 190,
+      "margin": 71,
+      "result": "win",
+      "playerUpper": 66,
+      "cpuUpper": 65
+    }
+  ],
+  "arrays": {
+    "player": [
+      291,
+      293,
+      244,
+      264,
+      259,
+      414,
+      232,
+      237,
+      235,
+      225,
+      225,
+      276,
+      406,
+      253,
+      245,
+      169,
+      165,
+      196,
+      245,
+      200,
+      276,
+      272,
+      230,
+      365,
+      267,
+      254,
+      257,
+      243,
+      187,
+      253,
+      224,
+      256,
+      245,
+      240,
+      325,
+      272,
+      322,
+      301,
+      244,
+      288,
+      206,
+      210,
+      240,
+      234,
+      261
+    ],
+    "cpu": [
+      217,
+      196,
+      352,
+      251,
+      242,
+      171,
+      217,
+      217,
+      269,
+      246,
+      247,
+      214,
+      198,
+      259,
+      245,
+      178,
+      273,
+      243,
+      248,
+      270,
+      282,
+      289,
+      238,
+      238,
+      268,
+      154,
+      149,
+      232,
+      257,
+      216,
+      246,
+      271,
+      161,
+      225,
+      240,
+      243,
+      289,
+      255,
+      367,
+      272,
+      231,
+      319,
+      239,
+      210,
+      190
+    ],
+    "playerUpper": [
+      70,
+      63,
+      66,
+      71,
+      64,
+      69,
+      69,
+      57,
+      63,
+      65,
+      63,
+      71,
+      64,
+      72,
+      65,
+      54,
+      62,
+      54,
+      68,
+      60,
+      65,
+      64,
+      68,
+      52,
+      65,
+      52,
+      65,
+      56,
+      51,
+      56,
+      53,
+      65,
+      69,
+      64,
+      65,
+      71,
+      65,
+      65,
+      55,
+      65,
+      63,
+      49,
+      58,
+      65,
+      66
+    ],
+    "cpuUpper": [
+      59,
+      41,
+      60,
+      66,
+      67,
+      57,
+      57,
+      50,
+      68,
+      67,
+      68,
+      61,
+      64,
+      63,
+      65,
+      65,
+      66,
+      63,
+      70,
+      71,
+      65,
+      64,
+      69,
+      63,
+      69,
+      51,
+      62,
+      38,
+      56,
+      53,
+      57,
+      66,
+      60,
+      64,
+      66,
+      58,
+      63,
+      64,
+      67,
+      67,
+      62,
+      71,
+      66,
+      52,
+      65
+    ]
+  },
+  "categoryAverages": {
+    "player": {
+      "ones": 1.911111,
+      "twos": 5.155556,
+      "threes": 8.6,
+      "fours": 11.733333,
+      "fives": 15.444444,
+      "sixes": 19.866667,
+      "threeKind": 22.288889,
+      "fourKind": 14.066667,
+      "fullHouse": 22.777778,
+      "smallStraight": 29.333333,
+      "largeStraight": 35.555556,
+      "yahtzee": 16.666667,
+      "chance": 22.4
+    },
+    "cpu": {
+      "ones": 2.022222,
+      "twos": 5.555556,
+      "threes": 8.666667,
+      "fours": 11.644444,
+      "fives": 14.555556,
+      "sixes": 19.466667,
+      "threeKind": 20.644444,
+      "fourKind": 10.555556,
+      "fullHouse": 22.777778,
+      "smallStraight": 30,
+      "largeStraight": 33.777778,
+      "yahtzee": 13.333333,
+      "chance": 21.533333
+    }
+  },
+  "progressionMean": {
+    "player": [
+      20.4,
+      39.177778,
+      58.933333,
+      76.777778,
+      98.266667,
+      116.488889,
+      132.622222,
+      152.977778,
+      172.533333,
+      198.4,
+      220.866667,
+      240.733333,
+      256.577778
+    ],
+    "cpu": [
+      17.422222,
+      41.111111,
+      62.044444,
+      82.955556,
+      103.733333,
+      121.644444,
+      138.355556,
+      154.488889,
+      171.533333,
+      195.466667,
+      211.355556,
+      227.111111,
+      240.755556
+    ]
+  },
+  "progressionSd": {
+    "player": [
+      11.995075,
+      14.929058,
+      19.393532,
+      23.673815,
+      26.237898,
+      30.749444,
+      29.50677,
+      32.436994,
+      36.234464,
+      35.394144,
+      37.447903,
+      44.98909,
+      50.995316
+    ],
+    "cpu": [
+      11.095636,
+      15.619368,
+      19.522662,
+      28.638781,
+      27.813829,
+      28.490952,
+      32.256187,
+      30.91015,
+      32.969407,
+      37.255628,
+      41.363222,
+      46.088463,
+      45.005634
+    ]
+  }
+}

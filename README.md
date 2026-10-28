@@ -107,6 +107,15 @@ The mean matches the table's exact full-card value within its confidence
 interval. The older heuristic averaged 250.39 with the same trainer (SD 61.15,
 upper bonus 64.2%), so the table is worth about 3.8 points per game.
 
+A separate **45-game browser benchmark** against the deployed build is recorded
+in [reports/yahtzee-benchmark-2026-10-28.md](reports/yahtzee-benchmark-2026-10-28.md).
+It finished **24–20–1**, averaging **256.58** to the computer's **240.76**. The
+95% interval on the margin includes zero, as expected when both sides use the
+same solver; the 20-game extension went 14–6 after a 10–14–1 start. An
+independent 100-game headless rerun with the same **Exact-W** model (seed
+`20261028`) went **42–57–1**, averaging **253.88–257.25**; the player mean stayed
+within 0.3 of 254.14, so the 45-game record was the noisy part.
+
 The official-rules benchmark is **254.5896** (Verhoeff). Official joker rules
 score an extra Yahtzee differently; this game deliberately uses the permissive
 rule documented below, so its exact value is 254.143784, not 254.5896. The
@@ -154,6 +163,8 @@ tools/solve-optimal.js  exact table generator and official validation
 tools/optimal-table.bin  generated raw table (4 MiB)
 tools/load-table.js   loads the raw table for the Node tools
 tools/train.js        seeded self-play evaluation
+tools/benchmark-match.js  seeded headless 100-game match verification
+tools/render-benchmark.js  benchmark JSON and SVG chart generator
 tools/tune.js         grid sweep for the fallback weights
 tools/bonus.js        fits the fallback upper-bonus model
 tools/bonus-model.json  the fitted coefficients (also baked into engine.js)
