@@ -170,6 +170,14 @@ the round-13 search are much faster. The solver accepts an earlier switch, but
 the browser starts at round 12: the round-11 pilot cost about 70 seconds per
 game, which is not practical in the UI.
 
+A **100-game CPU-role head-to-head** with an Exact-W player is recorded in
+[reports/yahtzee-cpu-matchw-2026-10-28.md](reports/yahtzee-cpu-matchw-2026-10-28.md).
+It finished **51–49** for the player, with the CPU averaging **248.36** versus
+**261.77** in the Exact-W control. The score drop is the policy's deliberate
+match-equity trade; the 100-game record is too noisy to resolve the small win
+probability effect. A separate exact 20-state check favored Match-W on all
+20 states.
+
 ### 5. The coach
 
 The coach uses the same exact turn engine as the opponent, but stays on
@@ -210,8 +218,9 @@ tools/optimal-table.bin  generated raw table (4 MiB)
 tools/load-table.js   loads the raw table for the Node tools
 tools/train.js        seeded self-play evaluation
 tools/benchmark-match.js  seeded headless 100-game match verification
-tools/match-solver.js  Match-W endgame solver and exact CPU distribution
-tools/benchmark-matchw.js  hybrid Exact-W/Match-W match benchmark
+tools/match-solver.js  player-role Match-W solver and exact CPU distribution
+tools/benchmark-matchw.js  hybrid Exact-W/Match-W player benchmark
+tools/benchmark-cpu-matchw.js  CPU-role Match-W head-to-head benchmark
 tools/compare-matchw.js  exact paired policy comparison on late-game states
 tools/render-matchw.js  Match-W SVG chart generator
 tools/render-benchmark.js  benchmark JSON and SVG chart generator
@@ -232,7 +241,9 @@ node tools/solve-optimal.js --official --workers=16  # benchmark check, no files
 node tools/solve-optimal.js --workers=16     # regenerate the shipped table
 node tools/tune.js                           # sweep fallback weights
 node tools/bonus.js 4000                     # refit the fallback bonus model
-node tools/benchmark-matchw.js --games=100 --start-round=12  # hybrid match
+node tools/benchmark-matchw.js --games=100 --start-round=12  # hybrid player match
+node tools/benchmark-cpu-matchw.js --games=100 --cpu=matchw  # CPU-role match
+node tools/benchmark-cpu-matchw.js --games=100 --cpu=exact --out=reports/yahtzee-cpu-exact-control-100.json
 node tools/compare-matchw.js --games=50 --start-round=12     # exact paired values
 node tools/render-matchw.js                                  # Match-W charts
 ```
