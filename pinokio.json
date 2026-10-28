@@ -1,5 +1,5 @@
 {
   "title": "Yahtzee: Probability Engine",
-  "description": "Play Yahtzee against a near-optimal computer that solves every roll with exact probabilities.",
+  "description": "Play Yahtzee against a computer that solves every roll with exact probabilities, an exact table, and a match-aware endgame.",
   "icon": "icon.svg"
 }

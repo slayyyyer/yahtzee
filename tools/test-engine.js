@@ -9,6 +9,8 @@ const path = require('path');
 const assert = require('assert');
 const Engine = require(path.join(__dirname, '..', 'src', 'engine.js'));
 const { loadOptimalTable } = require('./load-table.js');
+const { createMatchSolver } = require('./match-solver.js');
+const BrowserMatch = require(path.join(__dirname, '..', 'src', 'match-solver.js'));
 
 let passed = 0;
 function ok(name, fn) {
@@ -323,5 +325,201 @@ ok('exact and heuristic engines make legal mid-game decisions', () => {
       'expected values diverged: ' + exact.expected + ' vs ' + heuristic.expected);
   }
 });
+
+console.log('Match-W endgame solver');
+if (!tableEngine) {
+  ok('Match-W checks need the generated table', () => assert.fail('table missing'));
+} else {
+  runBrowserMatchChecks(tableEngine);
+
+  const match = createMatchSolver(tableEngine);
+
+  function cardWithOpen() {
+    const card = Engine.blankCard();
+    card.scores.ones = 3;
+    card.scores.twos = 6;
+    card.scores.threes = 9;
+    card.scores.fours = 12;
+    card.scores.fives = 15;
+    card.scores.sixes = 18;
+    card.scores.threeKind = 24;
+    card.scores.fourKind = 20;
+    card.scores.fullHouse = 25;
+    card.scores.smallStraight = 30;
+    // largeStraight, yahtzee and chance stay open
+    return card;
+  }
+
+  function openIdsFromBits(bits) {
+    const ids = [];
+    for (let i = 0; i < Engine.CAT_IDS.length; i++) if (bits & (1 << i)) ids.push(Engine.CAT_IDS[i]);
+    return ids;
+  }
+
+  ok('card-to-state conversion preserves the total', () => {
+    const card = cardWithOpen();
+    const state = match.stateFromCard(card);
+    assert.strictEqual(match.totalOf(state), Engine.totalScore(card));
+    for (const id of Engine.openCategories(card)) {
+      assert.ok(state.bits & (1 << Engine.CAT_INDEX[id]), id + ' should be open');
+    }
+  });
+
+  ok('tie utility is exactly one half', () => {
+    assert.strictEqual(match.utility(100, 100), 0.5);
+    assert.strictEqual(match.utility(101, 100), 1);
+    assert.strictEqual(match.utility(99, 100), 0);
+  });
+
+  ok('CPU distribution sums to 1 and matches the shipped expected value', () => {
+    const card = cardWithOpen();
+    const dist = match.cpuTurnDistribution(match.stateFromCard(card));
+    const exact = tableEngine.solve(Engine.openCategories(card), card);
+    let total = 0;
+    let expected = 0;
+    for (const o of dist) {
+      total += o.prob;
+      const futureCard = { scores: { ones: o.upper, yahtzee: o.y ? 50 : 0 } };
+      const future = tableEngine.futureValue(openIdsFromBits(o.bits), futureCard);
+      expected += o.prob * (o.delta + future);
+    }
+    assert.ok(Math.abs(total - 1) < 1e-10, 'distribution sum=' + total);
+    assert.ok(Math.abs(expected - exact.expected) < 1e-6,
+      'distribution mean=' + expected + ' expected=' + exact.expected);
+  });
+
+  ok('Match-W is at least as good as the Exact-W policy', () => {
+    const player = cardWithOpen();
+    const cpu = cardWithOpen();
+    const cmp = match.compareFromCards(player, cpu, 12);
+    assert.ok(Number.isFinite(cmp.match) && cmp.match >= 0 && cmp.match <= 1);
+    assert.ok(cmp.match >= cmp.exact - 1e-9, 'match=' + cmp.match + ' exact=' + cmp.exact);
+  });
+
+  ok('Match-W recognizes a locked win and a locked loss', () => {
+    const player = Engine.blankCard();
+    player.scores.ones = 100; // model-level score; only totals matter here
+    const cpu = Engine.blankCard();
+    const win = match.turnFromCards(player, cpu, 13);
+    assert.ok(win.value > 0.999, 'locked win value=' + win.value);
+    assert.ok(match.exactPolicyValueFromCards(player, cpu, 13) > 0.999, 'locked Exact-W win');
+
+    const losingPlayer = Engine.blankCard();
+    const winningCpu = Engine.blankCard();
+    winningCpu.scores.ones = 200;
+    const loss = match.turnFromCards(losingPlayer, winningCpu, 13);
+    assert.ok(loss.value < 0.001, 'locked loss value=' + loss.value);
+    assert.ok(match.exactPolicyValueFromCards(losingPlayer, winningCpu, 13) < 0.001, 'locked Exact-W loss');
+  });
+}
+
+function runBrowserMatchChecks(tableEngine) {
+  console.log('Browser Match-W endgame (CPU role)');
+  const cpuMatch = BrowserMatch.createLateGameSolver(tableEngine);
+
+  function cardWithOnly(openId, fillValue) {
+    const card = Engine.blankCard();
+    const value = fillValue === undefined ? 0 : fillValue;
+    for (const id of Engine.CAT_IDS) {
+      if (id !== openId) card.scores[id] = value;
+    }
+    return card;
+  }
+
+  function cardWithTwoOpen(first, second) {
+    const card = Engine.blankCard();
+    for (const id of Engine.CAT_IDS) {
+      if (id !== first && id !== second) card.scores[id] = 0;
+    }
+    return card;
+  }
+
+  function lastRoundValue(cpuCard, playerCard) {
+    const cpu = BrowserMatch.stateFromCard(cpuCard);
+    const player = BrowserMatch.stateFromCard(playerCard);
+    let value = 0;
+    for (let s = 0; s < Engine.getModel().stateCounts.length; s++) {
+      const score = Engine.getModel().scores[Engine.CAT_INDEX.chance][s];
+      value += Engine.getModel().freshProb[s] * BrowserMatch.utility(
+        BrowserMatch.totalOf(cpu) + score,
+        BrowserMatch.totalOf(player)
+      );
+    }
+    return value;
+  }
+
+  ok('browser Match-W is exact on the last turn', () => {
+    const cpu = cardWithOnly('chance');
+    const player = cardWithOnly('chance', 0);
+    player.scores.chance = 0; // complete the player's card
+    const turn = cpuMatch.turnFromCards(cpu, player, 13);
+    const expected = lastRoundValue(cpu, player);
+    assert.strictEqual(turn.policy, 'Match-W');
+    assert.ok(Math.abs(turn.value - expected) < 1e-9,
+      'value=' + turn.value + ' expected=' + expected);
+    assert.ok(turn.value > 0.999999, 'locked win value=' + turn.value);
+    const choice = turn.bestCategory([1, 2, 3, 4, 5]);
+    assert.strictEqual(choice.catId, 'chance');
+    assert.strictEqual(choice.score, 15);
+  });
+
+  ok('browser Match-W recognizes a locked last-turn loss', () => {
+    const cpu = cardWithOnly('chance');
+    const player = cardWithOnly('chance', 0);
+    player.scores.chance = 100;
+    const turn = cpuMatch.turnFromCards(cpu, player, 13);
+    assert.ok(turn.value < 1e-12, 'locked loss value=' + turn.value);
+  });
+
+  ok('browser Match-W values the human last turn', () => {
+    const cpu = cardWithTwoOpen('chance', 'yahtzee');
+    const chanceOpen = cardWithOnly('chance', 0);
+    const yahtzeeOpen = cardWithOnly('yahtzee', 0);
+    const chance = cpuMatch.turnFromCards(cpu, chanceOpen, 12);
+    const yahtzee = cpuMatch.turnFromCards(cpu, yahtzeeOpen, 12);
+    assert.ok(chance.value < yahtzee.value - 0.1,
+      'chance=' + chance.value + ' yahtzee=' + yahtzee.value);
+  });
+
+  ok('browser Match-W responds to the scoreboard', () => {
+    const cpu = cardWithTwoOpen('chance', 'yahtzee');
+    const low = cardWithOnly('chance', 0);
+    const high = cardWithOnly('chance', 0);
+    high.scores.ones = 50;
+    const lowTurn = cpuMatch.turnFromCards(cpu, low, 12);
+    const highTurn = cpuMatch.turnFromCards(cpu, high, 12);
+    assert.ok(highTurn.value < lowTurn.value,
+      'high=' + highTurn.value + ' low=' + lowTurn.value);
+  });
+
+  ok('browser Match-W decisions are legal and do not mutate cards', () => {
+    const cpu = cardWithTwoOpen('chance', 'yahtzee');
+    const player = cardWithOnly('chance', 0);
+    const beforeCpu = JSON.stringify(cpu);
+    const beforePlayer = JSON.stringify(player);
+    const turn = cpuMatch.turnFromCards(cpu, player, 12);
+    const open = Engine.openCategories(cpu);
+    for (const dice of [[1, 2, 3, 4, 5], [6, 6, 2, 3, 5], [4, 4, 4, 4, 4]]) {
+      const keep = turn.bestKeep(dice, 2);
+      assert.ok(keep && keep.hold.length === 5, 'keep decision');
+      assert.ok(keep.values.every(function (v) { return dice.indexOf(v) !== -1; }));
+      assert.ok(keep.value >= 0 && keep.value <= 1, 'keep value');
+      const choice = turn.bestCategory(dice);
+      assert.strictEqual(open.indexOf(choice.catId) !== -1, true, 'open category');
+    }
+    assert.strictEqual(JSON.stringify(cpu), beforeCpu);
+    assert.strictEqual(JSON.stringify(player), beforePlayer);
+  });
+
+  ok('browser Match-W caches repeated evaluations', () => {
+    const cpu = cardWithTwoOpen('chance', 'yahtzee');
+    const player = cardWithOnly('chance', 0);
+    const first = cpuMatch.turnFromCards(cpu, player, 12);
+    const cached = cpuMatch.stats().cpuTurnCache;
+    const second = cpuMatch.turnFromCards(cpu, player, 12);
+    assert.strictEqual(second.value, first.value);
+    assert.strictEqual(cpuMatch.stats().cpuTurnCache, cached);
+  });
+}
 
 console.log('\n' + passed + ' checks passed' + (process.exitCode ? ' (with failures)' : '.'));

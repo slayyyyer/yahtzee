@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b1712">
   <title>Yahtzee — Probability Engine</title>
-  <meta name="description" content="Play Yahtzee against a computer that solves every roll with exact probabilities and an exact dynamic-programming table for the rest of the game.">
+  <meta name="description" content="Play Yahtzee against a computer that solves every roll with exact probabilities, an exact table for the rest of the game, and a match-aware endgame.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -94,7 +94,7 @@
 
     <footer class="footer">
       <span>Every roll enumerated exactly · 7,776 outcomes</span>
-      <span class="footer-right" id="recordNote">Exact optimal play, solved by dynamic programming.</span>
+      <span class="footer-right" id="recordNote">Exact play, with a match-aware endgame.</span>
     </footer>
   </div>
 
@@ -138,8 +138,9 @@
           <p class="rule-note">You get three rolls each turn. Hold any dice between rolls, then bank the result in one open box. You may stop and bank after any roll.</p>
 
           <h3>The opponent</h3>
-          <p>The computer does not guess. It enumerates every distinct outcome of every remaining roll, solves each turn backwards by dynamic programming, and scores into the box that maximises its expected final total. The value of the boxes it has left comes from a precomputed exact table over every reachable scorecard state.</p>
-          <p class="rule-note">It plays the exact optimal strategy for this scorecard: <b>254.14</b> expected points.</p>
+          <p>The computer does not guess. It enumerates every distinct outcome of every remaining roll, solves each turn backwards by dynamic programming, and through round 11 scores into the box that maximises its expected final total. The value of the boxes it has left comes from a precomputed exact table over every reachable scorecard state.</p>
+          <p>In the final two rounds it switches to <b>Match-W</b>. With both scorecards tracked, it maximises <b>P(win) + 0.5 × P(tie)</b> instead of average score, assuming you finish with the exact expected-score policy. It still enumerates every dice outcome on its own turn exactly.</p>
+          <p class="rule-note">Early play maximises the exact <b>254.14</b> expected score; the endgame protects or chases the match.</p>
         </section>
       </div>
 
@@ -163,6 +164,7 @@
 
   <script src="src/optimal-table.js"></script>
   <script src="src/engine.js"></script>
+  <script src="src/match-solver.js"></script>
   <script src="src/app.js"></script>
 </body>
 </html>

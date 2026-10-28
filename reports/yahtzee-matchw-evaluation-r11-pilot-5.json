@@ -1,0 +1,348 @@
+{
+  "summary": {
+    "seed": 20261028,
+    "games": 5,
+    "startRound": 11,
+    "clearBetweenGames": true,
+    "elapsedMs": 349391,
+    "states": 15,
+    "all": {
+      "n": 15,
+      "mean": 0.005146,
+      "sd": 0.007751,
+      "se": 0.002001,
+      "min": 0,
+      "max": 0.02288
+    },
+    "byRound": {
+      "11": {
+        "states": 5,
+        "match": {
+          "n": 5,
+          "mean": 0.755613,
+          "sd": 0.262175,
+          "se": 0.117248,
+          "min": 0.344322,
+          "max": 0.996474
+        },
+        "exact": {
+          "n": 5,
+          "mean": 0.742433,
+          "sd": 0.268972,
+          "se": 0.120288,
+          "min": 0.324974,
+          "max": 0.996249
+        },
+        "diff": {
+          "n": 5,
+          "mean": 0.01318,
+          "sd": 0.008745,
+          "se": 0.003911,
+          "min": 0.000226,
+          "max": 0.02288
+        },
+        "improved": 5,
+        "equal": 0,
+        "worse": 0,
+        "behind": {
+          "n": 1,
+          "mean": 0.019348,
+          "sd": 0,
+          "se": 0,
+          "min": 0.019348,
+          "max": 0.019348
+        },
+        "ahead": {
+          "n": 3,
+          "mean": 0.007891,
+          "sd": 0.006702,
+          "se": 0.00387,
+          "min": 0.000226,
+          "max": 0.01265
+        }
+      },
+      "12": {
+        "states": 5,
+        "match": {
+          "n": 5,
+          "mean": 0.535734,
+          "sd": 0.438545,
+          "se": 0.196123,
+          "min": 0.00411,
+          "max": 1
+        },
+        "exact": {
+          "n": 5,
+          "mean": 0.533476,
+          "sd": 0.43717,
+          "se": 0.195508,
+          "min": 0.003709,
+          "max": 1
+        },
+        "diff": {
+          "n": 5,
+          "mean": 0.002258,
+          "sd": 0.003095,
+          "se": 0.001384,
+          "min": 0,
+          "max": 0.006925
+        },
+        "improved": 4,
+        "equal": 1,
+        "worse": 0,
+        "behind": {
+          "n": 2,
+          "mean": 0.000201,
+          "sd": 0.000283,
+          "se": 0.0002,
+          "min": 0.000001,
+          "max": 0.000401
+        },
+        "ahead": {
+          "n": 3,
+          "mean": 0.003629,
+          "sd": 0.003475,
+          "se": 0.002006,
+          "min": 0,
+          "max": 0.006925
+        }
+      },
+      "13": {
+        "states": 5,
+        "match": {
+          "n": 5,
+          "mean": 0.552184,
+          "sd": 0.480288,
+          "se": 0.214791,
+          "min": 0,
+          "max": 1
+        },
+        "exact": {
+          "n": 5,
+          "mean": 0.552184,
+          "sd": 0.480288,
+          "se": 0.214791,
+          "min": 0,
+          "max": 1
+        },
+        "diff": {
+          "n": 5,
+          "mean": 0,
+          "sd": 0,
+          "se": 0,
+          "min": 0,
+          "max": 0
+        },
+        "improved": 0,
+        "equal": 5,
+        "worse": 0,
+        "behind": {
+          "n": 2,
+          "mean": 0,
+          "sd": 0,
+          "se": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ahead": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0,
+          "se": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    "solverCaches": {
+      "cpuPolicyCache": 0,
+      "cpuDistCache": 0,
+      "cpuValueCache": 0,
+      "playerTurnCache": 0,
+      "exactPolicyTurnCache": 0,
+      "exactCpuValueCache": 0
+    }
+  },
+  "states": [
+    {
+      "game": 1,
+      "round": 11,
+      "playerTotal": 189,
+      "cpuTotal": 189,
+      "margin": 0,
+      "playerOpen": 3,
+      "cpuOpen": 3,
+      "match": 0.6551340774805444,
+      "exact": 0.6322536413935358,
+      "diff": 0.022880436087008627
+    },
+    {
+      "game": 1,
+      "round": 12,
+      "playerTotal": 215,
+      "cpuTotal": 229,
+      "margin": -14,
+      "playerOpen": 2,
+      "cpuOpen": 2,
+      "match": 0.26023040693046234,
+      "exact": 0.2602290331488984,
+      "diff": 0.000001373781563951404
+    },
+    {
+      "game": 1,
+      "round": 13,
+      "playerTotal": 216,
+      "cpuTotal": 253,
+      "margin": -37,
+      "playerOpen": 1,
+      "cpuOpen": 1,
+      "match": 0.09961968663049303,
+      "exact": 0.09961968663049303,
+      "diff": 0
+    },
+    {
+      "game": 2,
+      "round": 11,
+      "playerTotal": 312,
+      "cpuTotal": 203,
+      "margin": 109,
+      "playerOpen": 3,
+      "cpuOpen": 3,
+      "match": 0.996474450737025,
+      "exact": 0.9962488152129576,
+      "diff": 0.0002256355240674024
+    },
+    {
+      "game": 2,
+      "round": 12,
+      "playerTotal": 338,
+      "cpuTotal": 203,
+      "margin": 135,
+      "playerOpen": 2,
+      "cpuOpen": 2,
+      "match": 0.9999999999986547,
+      "exact": 0.9999999999986492,
+      "diff": 5.551115123125783e-15
+    },
+    {
+      "game": 2,
+      "round": 13,
+      "playerTotal": 377,
+      "cpuTotal": 203,
+      "margin": 174,
+      "playerOpen": 1,
+      "cpuOpen": 1,
+      "match": 1.0000000000005078,
+      "exact": 1.0000000000005063,
+      "diff": 1.5543122344752192e-15
+    },
+    {
+      "game": 3,
+      "round": 11,
+      "playerTotal": 182,
+      "cpuTotal": 198,
+      "margin": -16,
+      "playerOpen": 3,
+      "cpuOpen": 3,
+      "match": 0.34432189387697937,
+      "exact": 0.324973583702223,
+      "diff": 0.019348310174756356
+    },
+    {
+      "game": 3,
+      "round": 12,
+      "playerTotal": 182,
+      "cpuTotal": 218,
+      "margin": -36,
+      "playerOpen": 2,
+      "cpuOpen": 2,
+      "match": 0.004109963162754362,
+      "exact": 0.0037086957373985174,
+      "diff": 0.000401267425355845
+    },
+    {
+      "game": 3,
+      "round": 13,
+      "playerTotal": 207,
+      "cpuTotal": 257,
+      "margin": -50,
+      "playerOpen": 1,
+      "cpuOpen": 1,
+      "match": 0,
+      "exact": 0,
+      "diff": 0
+    },
+    {
+      "game": 4,
+      "round": 11,
+      "playerTotal": 217,
+      "cpuTotal": 192,
+      "margin": 25,
+      "playerOpen": 3,
+      "cpuOpen": 3,
+      "match": 0.8689841723835294,
+      "exact": 0.8563346171752503,
+      "diff": 0.01264955520827915
+    },
+    {
+      "game": 4,
+      "round": 12,
+      "playerTotal": 246,
+      "cpuTotal": 242,
+      "margin": 4,
+      "playerOpen": 2,
+      "cpuOpen": 2,
+      "match": 0.4459763720440947,
+      "exact": 0.44201405031376323,
+      "diff": 0.003962321730331453
+    },
+    {
+      "game": 4,
+      "round": 13,
+      "playerTotal": 269,
+      "cpuTotal": 242,
+      "margin": 27,
+      "playerOpen": 1,
+      "cpuOpen": 1,
+      "match": 0.6612995763198717,
+      "exact": 0.6612995763198717,
+      "diff": 0
+    },
+    {
+      "game": 5,
+      "round": 11,
+      "playerTotal": 227,
+      "cpuTotal": 166,
+      "margin": 61,
+      "playerOpen": 3,
+      "cpuOpen": 3,
+      "match": 0.9131522967727879,
+      "exact": 0.9023552086317425,
+      "diff": 0.010797088141045408
+    },
+    {
+      "game": 5,
+      "round": 12,
+      "playerTotal": 241,
+      "cpuTotal": 211,
+      "margin": 30,
+      "playerOpen": 2,
+      "cpuOpen": 2,
+      "match": 0.9683539346161987,
+      "exact": 0.9614284774747575,
+      "diff": 0.006925457141441216
+    },
+    {
+      "game": 5,
+      "round": 13,
+      "playerTotal": 281,
+      "cpuTotal": 236,
+      "margin": 45,
+      "playerOpen": 1,
+      "cpuOpen": 1,
+      "match": 0.9999999999990971,
+      "exact": 0.9999999999990927,
+      "diff": 4.3298697960381105e-15
+    }
+  ]
+}

@@ -4,7 +4,8 @@ A one-player, browser-only Yahtzee game. You play against a computer that does
 not rely on canned rules of thumb: for every turn it enumerates every possible
 continuation, values every hold exactly, and values the rest of the game with a
 precomputed exact table. Under this game's rules the optimal expected score is
-**254.143784**.
+**254.143784**. In the final two rounds the computer switches to **Match-W**,
+trading some average score for a higher chance of winning the match.
 
 ## Play
 
@@ -34,7 +35,8 @@ web app.
   now, your current odds of the 35-point upper bonus, and the next-best lines.
   The number in the coach header is the size of the search for this roll.
 - **The computer's turn** is animated: its rolls, holds, search size and final
-  decision are shown in the insight panel while it plays.
+  decision are shown in the insight panel while it plays. In rounds 12–13 the
+  panel labels the switch to **Match-W**.
 - **New game** arms on the first click and restarts on the second, so a stray
   click cannot wipe a game. Your win/loss record is kept in `localStorage`.
 - `Esc` closes the rules or final-score dialog. All controls are native buttons
@@ -107,8 +109,12 @@ The mean matches the table's exact full-card value within its confidence
 interval. The older heuristic averaged 250.39 with the same trainer (SD 61.15,
 upper bonus 64.2%), so the table is worth about 3.8 points per game.
 
-A separate **45-game browser benchmark** against the deployed build is recorded
-in [reports/yahtzee-benchmark-2026-10-28.md](reports/yahtzee-benchmark-2026-10-28.md).
+That **254.16** figure describes Exact-W. The shipped CPU uses Match-W in
+rounds 12–13, so its average score can differ slightly; the exact table still
+covers rounds 1–11 and the coach.
+
+A separate **45-game browser benchmark** against the earlier Exact-W deployment
+is recorded in [reports/yahtzee-benchmark-2026-10-28.md](reports/yahtzee-benchmark-2026-10-28.md); it predates the Match-W switch below.
 It finished **24–20–1**, averaging **256.58** to the computer's **240.76**. The
 95% interval on the margin includes zero, as expected when both sides use the
 same solver; the 20-game extension went 14–6 after a 10–14–1 start. An
@@ -126,10 +132,49 @@ Either way the engine is far above casual human play (typically around 200).
 It never estimates the dice with a random rollout; the randomness comes only
 from the actual rolls.
 
-### 4. The coach
+### 4. Match-W: win probability in the final two rounds
 
-The coach uses the same engine as the opponent. It shows what the computer
-would do on your turn, including the exact hold, the best box if you bank, the
+Exact-W maximizes expected score, not the chance of beating a particular
+opponent. The browser now loads **Match-W** for the final two rounds from
+[`src/match-solver.js`](src/match-solver.js). The CPU is the decision maker:
+
+```
+CPU:    maximize P(CPU wins) + 0.5 * P(tie)
+Player: follow the shipped Exact-W policy in the modelled future turns
+```
+
+The CPU's own turn is still solved by exact dice enumeration. The human's
+future turn is represented by an exact distribution over the real Exact-W
+policy, so the only randomness left is the dice. Both scorecards and both totals
+are part of the state. At the round-12 switch the human has exactly one box
+left, so their category choice is forced; only their hold policy is modelled.
+
+This is the mirror of the headless experiment in
+[`tools/match-solver.js`](tools/match-solver.js), where the player used Match-W
+against an Exact-W CPU. On 50 real round-12 states that experiment improved the
+exact win probability by **+0.425 percentage points** (95% CI +0.235 to +0.615);
+40 states improved, 10 tied, and none got worse. At round 13 the gain is
+**+0.175 pp** (95% CI +0.038 to +0.313). A 100-game hybrid match went
+**46–53–1**, averaging **248.20** to the CPU's **262.74**; the score drop is the
+deliberate cost of playing for match probability. A 5-game pilot that switched
+at round 11 measured **+1.318 pp**, but took 349 seconds for five games.
+
+The 100-game record is not statistically meaningful for a +0.4 pp effect. The
+paired state-level comparison is. Details and raw data:
+[reports/yahtzee-matchw-2026-10-28.md](reports/yahtzee-matchw-2026-10-28.md).
+
+The browser search is synchronous. On 10 random round-12 states it took
+47–1,915 ms (mean 1.18 s) in the headless runtime used for these checks, so the
+computer can pause for up to about two seconds at the switch. Rounds 1–11 and
+the round-13 search are much faster. The solver accepts an earlier switch, but
+the browser starts at round 12: the round-11 pilot cost about 70 seconds per
+game, which is not practical in the UI.
+
+### 5. The coach
+
+The coach uses the same exact turn engine as the opponent, but stays on
+Exact-W advice. It shows what the computer would do on your turn under
+score-maximizing play, including the exact hold, the best box if you bank, the
 bonus probability, and the runner-up lines. It is advice, not an autoplayer.
 
 ## Rules implemented
@@ -155,15 +200,20 @@ index.html            page, rules dialog, final-score dialog
 styles.css            felt table, dice, scorecard, responsive layout
 src/engine.js         dice model, exact turn solver, table lookup, scoring
 src/optimal-table.js  generated base64 table (about 5.6 MB)
+src/match-solver.js   browser Match-W endgame (CPU win-probability policy)
 src/app.js            game flow, AI pacing, coach, scorecard UI, persistence
 icon.svg              app / favicon mark
 pinokio.json          static Pinokio metadata
-tools/test-engine.js  50 correctness checks
+tools/test-engine.js  61 correctness checks
 tools/solve-optimal.js  exact table generator and official validation
 tools/optimal-table.bin  generated raw table (4 MiB)
 tools/load-table.js   loads the raw table for the Node tools
 tools/train.js        seeded self-play evaluation
 tools/benchmark-match.js  seeded headless 100-game match verification
+tools/match-solver.js  Match-W endgame solver and exact CPU distribution
+tools/benchmark-matchw.js  hybrid Exact-W/Match-W match benchmark
+tools/compare-matchw.js  exact paired policy comparison on late-game states
+tools/render-matchw.js  Match-W SVG chart generator
 tools/render-benchmark.js  benchmark JSON and SVG chart generator
 tools/tune.js         grid sweep for the fallback weights
 tools/bonus.js        fits the fallback upper-bonus model
@@ -176,12 +226,15 @@ docs/plans/2026-10-27-optimal-table.md  implementation plan and results
 Node 18+ is enough; there are no npm dependencies.
 
 ```bash
-node tools/test-engine.js                    # 50 checks
+node tools/test-engine.js                    # 61 checks
 node tools/train.js --games=5000 --optimal   # exact-table self-play
 node tools/solve-optimal.js --official --workers=16  # benchmark check, no files
 node tools/solve-optimal.js --workers=16     # regenerate the shipped table
 node tools/tune.js                           # sweep fallback weights
 node tools/bonus.js 4000                     # refit the fallback bonus model
+node tools/benchmark-matchw.js --games=100 --start-round=12  # hybrid match
+node tools/compare-matchw.js --games=50 --start-round=12     # exact paired values
+node tools/render-matchw.js                                  # Match-W charts
 ```
 
 The table generator is deterministic. It writes `tools/optimal-table.bin` and

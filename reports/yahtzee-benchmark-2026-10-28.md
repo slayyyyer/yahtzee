@@ -1,5 +1,10 @@
 # Yahtzee Exact-W benchmark: 45 browser games + 100-game verification
 
+> **Historical note:** these games were played against the Exact-W build at
+> commit `de6cf68`, before Match-W was wired into the browser CPU. The current
+> CPU switches to Match-W in rounds 12–13; the 45-game record is therefore a
+> benchmark of the earlier Exact-W endgame, not the current shipped behavior.
+
 **Bottom line:** the 45-game browser benchmark finished **24 wins, 20 losses, 1 tie**. I averaged **256.58** against the computer's **240.76**, a mean margin of **+15.82** points. But the 95% interval on that margin is **−6.41 to +38.05**, so the record is statistically indistinguishable from a coin flip.
 
 A seeded **100-game headless rerun** with the same **Exact-W** model went **42–57–1**, averaging **253.88** to the computer's **257.25**. The record flipped; the mean did not. Exact-W is exact for expected score, not for winning a particular match.
@@ -173,8 +178,8 @@ The earlier 5-game 4–1 result was a hot streak. The 25-game 10–14–1 sample
 It depends on the objective.
 
 - **Maximize expected final score:** no. Exact-W is the full finite-horizon solution under these rules. The table already values every future box exactly, and the turn solver already checks every hold and every stop. There is no better expected-score policy in this state space.
-- **Maximize the chance of winning a specific match:** yes, in principle. That is a different objective. A win-probability policy would need the distribution of the opponent's final score, the current score difference, and the remaining boxes. It would choose higher-variance lines when behind and safer lines when ahead. That is a much larger dynamic program than `W(B,u,y)` and is not implemented here.
-- **Against an identical Exact-W opponent:** no fixed policy can guarantee a positive edge. A unilateral win-probability policy could improve match win rate at the cost of mean score, but it would need its own validation. The 100-game result is a reminder that expected-score play and win-probability play are not the same thing.
+- **Maximize the chance of winning a specific match:** yes, in principle. That is a different objective. The new [Match-W endgame report](yahtzee-matchw-2026-10-28.md) implements an exact version for the final two rounds. On 50 real round-12 states it raised the exact win probability by **+0.425 pp** (95% CI +0.235 to +0.615), and 40 of 50 states improved. The gain is real but small; a 100-game hybrid benchmark went **46–53–1**, which is inside the dice noise for a sub-percentage-point effect.
+- **Against an identical Exact-W opponent:** no fixed policy can guarantee a positive edge. Match-W is provably at least as good as Exact-W from the same state under the exact opponent model, but it gives up about **5 points** of mean score to buy the small match-probability gain. The 100-game result is a reminder that expected-score play and win-probability play are not the same thing.
 
 Official-rules Yahtzee is a separate case: the published value is **254.5896**, while this repo deliberately uses the permissive extra-Yahtzee rule and its exact value is **254.143784**.
 

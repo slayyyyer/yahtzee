@@ -16,6 +16,15 @@
     console.warn('Optimal table failed to decode; using the heuristic fallback.');
   }
   const engine = E.createEngine({ optimalTable: optimalTable });
+  const MATCH_W_START_ROUND = 12;
+  let matchSolver = null;
+  if (window.YahtzeeMatch && engine.hasOptimalTable) {
+    try {
+      matchSolver = window.YahtzeeMatch.createLateGameSolver(engine);
+    } catch (err) {
+      console.warn('Match-W endgame unavailable; using Exact-W.', err);
+    }
+  }
   const CATS = E.CATEGORIES;
   const PLAYER = 0;
   const CPU = 1;
@@ -74,6 +83,7 @@
     coachSignature: '',
     aiLog: [],
     aiFinal: null,
+    aiMatch: false,
     lastPlaced: null,
     lastMove: null,
     record: loadRecord(),
@@ -435,7 +445,9 @@
     if (!isPlayer) {
       room.rollBtn.disabled = true;
       room.rollBtn.textContent = state.busy ? 'Computer thinking' : 'Computer rolling';
-      room.prompt.textContent = 'The computer is enumerating every possible continuation of this turn.';
+      room.prompt.textContent = state.aiMatch
+        ? 'The computer is weighing every dice outcome for match equity.'
+        : 'The computer is enumerating every possible continuation of this turn.';
       return;
     }
 
@@ -479,7 +491,7 @@
       ' · ' + countOf(r.ties, 'tie');
     if (room.recordNote) {
       room.recordNote.textContent = (r.wins + r.losses + r.ties) === 0
-        ? 'Exact optimal play, solved by dynamic programming.'
+        ? (engine.hasOptimalTable ? 'Exact play, with a match-aware endgame.' : 'Exact play, solved by dynamic programming.')
         : 'This browser: ' + r.wins + 'W · ' + r.losses + 'L · ' + r.ties + 'T';
     }
   }
@@ -642,7 +654,7 @@
   }
 
   function renderAiInsight() {
-    setInsightHead('Computer', 'solving 7,776 outcomes');
+    setInsightHead('Computer', state.aiMatch ? 'Match-W · exact win probability' : 'solving 7,776 outcomes');
     const wrap = el('div', 'ai-log');
 
     if (!state.aiLog.length) {
@@ -698,6 +710,7 @@
   /* ------------------------------------------------------------------ */
   function startNewGame() {
     resetNewGameButton();
+    if (matchSolver) matchSolver.clear();
     state.gameId++;
     state.cards = [E.blankCard(), E.blankCard()];
     state.turn = PLAYER;
@@ -711,6 +724,7 @@
     state.coachSignature = '';
     state.aiLog = [];
     state.aiFinal = null;
+    state.aiMatch = false;
     state.lastPlaced = null;
     state.lastMove = null;
     if (state.overTimer) { window.clearTimeout(state.overTimer); state.overTimer = null; }
@@ -730,6 +744,7 @@
     state.coachSignature = '';
     state.aiLog = [];
     state.aiFinal = null;
+    state.aiMatch = false;
     renderAll();
 
     if (state.turn === CPU) {
@@ -794,19 +809,37 @@
     state.hasRolled = false;
     state.aiLog = [];
     state.aiFinal = null;
+    state.aiMatch = false;
     renderAll();
 
     await sleep(550);
     if (state.gameId !== myGame) return;
 
     const card = state.cards[CPU];
-    const open = E.openCategories(card);
-    const solver = engine.solve(open, card);
-
     const first = await aiRoll([0, 1, 2, 3, 4], 1, myGame);
     if (!first) return;
     await sleep(ROLL_SETTLE);
     if (state.gameId !== myGame) return;
+
+    const open = E.openCategories(card);
+    const round = 14 - open.length;
+    let solver = null;
+    if (round >= MATCH_W_START_ROUND && matchSolver) {
+      try {
+        solver = matchSolver.turnFromCards(card, state.cards[PLAYER], round);
+        state.aiMatch = true;
+        renderControls();
+      } catch (err) {
+        console.warn('Match-W endgame failed; falling back to Exact-W.', err);
+      }
+    }
+    if (!solver) solver = engine.solve(open, card);
+
+    if (state.aiMatch) {
+      aiLog('Match-W', 'exact P(win) + ½ P(tie)');
+      await sleep(220);
+      if (state.gameId !== myGame) return;
+    }
 
     const size = solver.searchSize(state.dice);
     if (size) {
@@ -904,6 +937,7 @@
   }
 
   function finishGame(myGame) {
+    if (matchSolver) matchSolver.clear();
     const you = E.totalScore(state.cards[PLAYER]);
     const cpu = E.totalScore(state.cards[CPU]);
     if (you > cpu) state.record.wins++;
