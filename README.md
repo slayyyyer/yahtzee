@@ -234,6 +234,17 @@ tools/bonus-model.json  the fitted coefficients (also baked into engine.js)
 docs/plans/2026-10-27-optimal-table.md  implementation plan and results
 ```
 
+## Reports and PDFs
+
+- [Why improving is unlikely](pdfs/why-improving-is-unlikely.pdf) — six-page
+  analysis of the remaining headroom: the exact-score ceiling, the size of the
+  two-card match state space, and the sample sizes needed to detect the
+  endgame gain.
+- [Perfect play in the Yahtzee engine](pdfs/yahtzee-perfect-play.pdf) — how the
+  exact table is generated and why this repo's optimum is 254.143784.
+- [How the Yahtzee computer player works](pdfs/initial-implementation.pdf) —
+  visual walkthrough of the turn solver and the pre-table engine.
+
 ## Development
 
 Node 18+ is enough; there are no npm dependencies.
