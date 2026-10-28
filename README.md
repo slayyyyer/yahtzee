@@ -178,6 +178,11 @@ match-equity trade; the 100-game record is too noisy to resolve the small win
 probability effect. A separate exact 20-state check favored Match-W on all
 20 states.
 
+**Why this is close to the ceiling.** A six-page analysis of the remaining
+headroom — exact-score saturation, the size of the two-card match state space,
+and the sample sizes needed to detect the endgame gain — is available as
+[PDF](pdfs/why-improving-is-unlikely.pdf) ([print source](reports/why-improving-is-unlikely.html)).
+
 ### 5. The coach
 
 The coach uses the same exact turn engine as the opponent, but stays on

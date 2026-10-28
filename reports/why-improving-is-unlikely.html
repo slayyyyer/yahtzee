@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ceiling — Why the Yahtzee CPU Is Hard to Improve</title>
+<style>
+  :root {
+    --ink: #17212b;
+    --muted: #5d6872;
+    --paper: #fbfaf6;
+    --line: #d8d1c3;
+    --soft: #efe9dd;
+    --accent: #d9772f;
+    --accent-soft: #f3dfcd;
+    --navy: #1e3a4f;
+    --teal: #2f6f6a;
+    --red: #a4483f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #e7e2d8;
+    color: var(--ink);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.2pt;
+    line-height: 1.45;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    position: relative;
+    width: 210mm;
+    height: 296mm;
+    padding: 16mm 17mm 21mm;
+    margin: 8mm auto;
+    background: var(--paper);
+    box-shadow: 0 2px 18px rgba(0, 0, 0, 0.16);
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .page:last-child { page-break-after: auto; }
+  .page-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 0.5pt solid var(--line);
+    padding-bottom: 2.2mm;
+    margin-bottom: 7mm;
+    color: var(--muted);
+    font-size: 7.2pt;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+  .page-head .right { color: var(--accent); }
+  .page-foot {
+    position: absolute;
+    left: 17mm;
+    right: 17mm;
+    bottom: 8mm;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-top: 0.5pt solid var(--line);
+    padding-top: 2mm;
+    color: var(--muted);
+    font-size: 7pt;
+    letter-spacing: 0.06em;
+  }
+  .page-foot strong { color: var(--ink); font-weight: 600; }
+  .kicker {
+    color: var(--accent);
+    font-size: 7.6pt;
+    font-weight: 700;
+    letter-spacing: 0.19em;
+    text-transform: uppercase;
+    margin: 0 0 2.5mm;
+  }
+  h1, h2, h3, p, blockquote { margin-top: 0; }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    font-size: 49pt;
+    line-height: 0.92;
+    letter-spacing: -0.045em;
+    margin: 0 0 4mm;
+  }
+  h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    font-size: 24.5pt;
+    line-height: 1.03;
+    letter-spacing: -0.025em;
+    margin: 0 0 3mm;
+  }
+  h2 .num {
+    display: inline-block;
+    color: var(--accent);
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 9pt;
+    letter-spacing: 0.12em;
+    vertical-align: 6pt;
+    margin-right: 3mm;
+  }
+  h3 {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    margin: 0 0 1.5mm;
+  }
+  .lede {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 13.2pt;
+    line-height: 1.36;
+    color: #2b3741;
+    margin-bottom: 4mm;
+  }
+  p { margin-bottom: 2.5mm; }
+  strong { font-weight: 650; }
+  em { font-style: italic; }
+  .muted { color: var(--muted); }
+  .mono {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .small { font-size: 8.7pt; }
+  .tiny { font-size: 7.6pt; line-height: 1.38; }
+  .rule { border: 0; border-top: 0.5pt solid var(--line); margin: 4mm 0; }
+  .accent { color: var(--accent); }
+  .navy { color: var(--navy); }
+  .red { color: var(--red); }
+
+  /* Cover */
+  .cover { padding-top: 15mm; }
+  .cover-top {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 7.2pt;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding-bottom: 2.5mm;
+    border-bottom: 0.8pt solid var(--ink);
+  }
+  .cover-top .accent { color: var(--accent); }
+  .cover .kicker { margin-top: 15mm; }
+  .cover h1 { font-size: 55pt; margin-bottom: 4mm; }
+  .dek {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 15pt;
+    line-height: 1.3;
+    color: #3c4852;
+    max-width: 158mm;
+    margin-bottom: 9mm;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 8mm;
+    align-items: stretch;
+    border-top: 2pt solid var(--ink);
+    border-bottom: 0.5pt solid var(--line);
+    padding: 5mm 0 5.5mm;
+    margin-bottom: 7mm;
+  }
+  .hero-number { display: flex; flex-direction: column; justify-content: center; }
+  .hero-label {
+    color: var(--muted);
+    font-size: 7.2pt;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 1mm;
+  }
+  .hero-value {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 35pt;
+    line-height: 1;
+    letter-spacing: -0.055em;
+    color: var(--navy);
+    white-space: nowrap;
+  }
+  .hero-note { color: var(--muted); font-size: 8.2pt; margin-top: 2mm; }
+  .hero-copy {
+    border-left: 0.5pt solid var(--line);
+    padding-left: 6mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .hero-copy p { font-family: Georgia, "Times New Roman", serif; font-size: 11.4pt; line-height: 1.5; margin: 0; }
+  .findings {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4mm 8mm;
+    margin-bottom: 7mm;
+  }
+  .finding { display: grid; grid-template-columns: 8mm 1fr; gap: 2mm; }
+  .finding .n {
+    color: var(--accent);
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 8pt;
+    padding-top: 0.5mm;
+  }
+  .finding p { font-size: 9.1pt; line-height: 1.42; margin: 0; }
+  .finding strong { display: block; margin-bottom: 0.5mm; font-size: 9.3pt; }
+  .cover-bottom {
+    position: absolute;
+    left: 17mm;
+    right: 17mm;
+    bottom: 13mm;
+    display: flex;
+    justify-content: space-between;
+    gap: 12mm;
+    border-top: 0.5pt solid var(--line);
+    padding-top: 3mm;
+    color: var(--muted);
+    font-size: 7.5pt;
+    line-height: 1.4;
+  }
+  .cover-bottom p { margin: 0; max-width: 88mm; }
+
+  /* Grids */
+  .cols {
+    display: grid;
+    grid-template-columns: 1.13fr 0.87fr;
+    gap: 9mm;
+    align-items: start;
+  }
+  .cols-wide { grid-template-columns: 1fr 0.72fr; }
+  .stack > * + * { margin-top: 3mm; }
+  .chart { margin: 0; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  .chart figcaption {
+    color: var(--muted);
+    font-size: 7.2pt;
+    line-height: 1.38;
+    border-top: 0.5pt solid var(--line);
+    padding-top: 1.8mm;
+    margin-top: 1.5mm;
+  }
+  .svg-title { fill: var(--ink); font-size: 9.4px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .svg-sub { fill: var(--muted); font-size: 7.9px; }
+  .svg-label { fill: #34414b; font-size: 8.5px; }
+  .svg-num { fill: var(--ink); font-family: "Cascadia Mono", Consolas, monospace; font-size: 8.8px; }
+  .svg-note { fill: var(--muted); font-size: 7.7px; }
+  .svg-tick { fill: var(--muted); font-family: "Cascadia Mono", Consolas, monospace; font-size: 7.4px; }
+  .svg-axis { stroke: #aeb5b8; stroke-width: 0.7; }
+  .svg-grid { stroke: #e3ddd1; stroke-width: 0.6; }
+  .svg-zero { stroke: #8a949b; stroke-width: 0.8; stroke-dasharray: 2 2; }
+
+  .formula {
+    background: #f3efe6;
+    border-left: 3px solid var(--navy);
+    padding: 3.2mm 4mm 3.4mm;
+    margin: 4mm 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 10.1pt;
+    line-height: 1.5;
+  }
+  .formula .mono { font-size: 9.6pt; }
+  .formula .where { display: block; color: var(--muted); font-family: "Segoe UI", Arial, sans-serif; font-size: 7.3pt; line-height: 1.4; margin-top: 1.8mm; }
+  .proof-list { display: grid; gap: 2.8mm; margin-top: 3mm; }
+  .proof { display: grid; grid-template-columns: 7mm 1fr; gap: 2mm; }
+  .proof .pn {
+    width: 5.8mm;
+    height: 5.8mm;
+    border: 0.7pt solid var(--navy);
+    border-radius: 50%;
+    color: var(--navy);
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 7.2pt;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.2mm;
+  }
+  .proof p { margin: 0; font-size: 9.1pt; line-height: 1.42; }
+  .proof strong { display: block; margin-bottom: 0.3mm; }
+
+  .callout {
+    background: var(--soft);
+    border-left: 3px solid var(--accent);
+    padding: 3.4mm 4mm;
+    margin: 4mm 0;
+  }
+  .callout p { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 10.4pt; line-height: 1.42; }
+  .callout .label {
+    display: block;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 6.8pt;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1mm;
+  }
+  .callout.dark { background: var(--navy); border-left-color: var(--accent); color: #f9f5ed; }
+  .callout.dark .label { color: #e9a66f; }
+  .callout.dark p { color: #f9f5ed; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; margin: 3mm 0; }
+  .stat { border-top: 2pt solid var(--ink); padding-top: 2mm; }
+  .stat .v { font-family: "Cascadia Mono", Consolas, monospace; font-size: 18pt; line-height: 1; color: var(--navy); }
+  .stat .l { color: var(--muted); font-size: 7.2pt; line-height: 1.35; margin-top: 1.3mm; }
+
+  /* Timeline */
+  .timeline { margin: 3mm 0 4mm; }
+  .timeline-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.5mm; }
+  .timeline-head span { font-size: 7pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .timeline-head .legend { display: flex; gap: 4mm; }
+  .key { display: inline-flex; align-items: center; gap: 1.4mm; }
+  .key i { display: inline-block; width: 3mm; height: 3mm; border-radius: 0.4mm; }
+  .cells { display: grid; grid-template-columns: repeat(13, 1fr); gap: 1.2mm; }
+  .cell {
+    height: 10mm;
+    border-radius: 0.7mm;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 1mm;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 6.6pt;
+    color: rgba(255,255,255,0.84);
+  }
+  .cell.exact { background: var(--navy); }
+  .cell.match { background: var(--accent); color: #fff; }
+  .timeline-note { color: var(--muted); font-size: 7.3pt; margin-top: 1.5mm; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  th {
+    text-align: left;
+    font-size: 6.7pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 0.8pt solid var(--ink);
+    padding: 1.5mm 1.5mm 1.5mm 0;
+  }
+  td { border-bottom: 0.5pt solid var(--line); padding: 2mm 1.5mm 2mm 0; vertical-align: top; line-height: 1.35; }
+  th:last-child, td:last-child { padding-right: 0; }
+  td.num, th.num { text-align: right; font-family: "Cascadia Mono", Consolas, monospace; font-variant-numeric: tabular-nums; }
+  tr.total td { border-bottom: 0.8pt solid var(--ink); font-weight: 650; }
+  .tag {
+    display: inline-block;
+    padding: 0.5mm 1.4mm;
+    border-radius: 0.7mm;
+    background: var(--accent-soft);
+    color: #8b4517;
+    font-size: 6.8pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .tag.cool { background: #dce7e5; color: #24534f; }
+  .tag.gray { background: #e7e2d8; color: #505b64; }
+  .sample-table { table-layout: fixed; }
+  .sample-table th:nth-child(1), .sample-table td:nth-child(1) { width: 20%; }
+  .sample-table th:nth-child(2), .sample-table td:nth-child(2) { width: 25%; }
+  .sample-table th:nth-child(2) { padding-right: 3mm; }
+  .sample-table th:nth-child(3), .sample-table td:nth-child(3) { width: 55%; }
+
+  .refs { font-size: 7.5pt; line-height: 1.45; color: var(--muted); }
+  .refs a { color: var(--navy); text-decoration: none; border-bottom: 0.5pt solid #9db0ba; }
+  .refs li { margin-bottom: 1.1mm; }
+  .refs ol { margin: 0; padding-left: 4.5mm; }
+
+  @page { size: A4; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .page { margin: 0; box-shadow: none; }
+  }
+  @media screen {
+    .page { outline: 1px solid rgba(0,0,0,0.08); }
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <!-- ============================ PAGE 1 ============================ -->
+  <section class="page cover">
+    <div class="cover-top">
+      <span>Yahtzee / Analysis note</span>
+      <span>28 October 2026</span>
+    </div>
+
+    <p class="kicker">A report on the limits of further strength</p>
+    <h1>The Ceiling</h1>
+    <p class="dek">Why the current computer is already hard to improve — and why more search, more training, or a bigger table does not change that.</p>
+
+    <div class="hero-grid">
+      <div class="hero-number">
+        <span class="hero-label">Exact expected score</span>
+        <span class="hero-value">254.143784</span>
+        <span class="hero-note">points per game under this repo’s rules</span>
+      </div>
+      <div class="hero-copy">
+        <p>The first eleven rounds are solved by backward induction over a 786,432-state table. Every hold and every reroll is enumerated. No policy can average more.</p>
+      </div>
+    </div>
+
+    <div class="findings">
+      <div class="finding">
+        <span class="n">01</span>
+        <p><strong>Expected score is closed.</strong> The table is the Bellman fixed point, not a heuristic. Self-play lands on it: 254.16 over 5,000 games.</p>
+      </div>
+      <div class="finding">
+        <span class="n">02</span>
+        <p><strong>Match play is the only legal headroom.</strong> The exact Match-W endgame adds 0.425 percentage points at round 12. That is about one extra win per 235 games.</p>
+      </div>
+      <div class="finding">
+        <span class="n">03</span>
+        <p><strong>The full match solution does not scale.</strong> Two cards multiply the state space to roughly 6 × 10<sup>11</sup> before score totals, turn, and round.</p>
+      </div>
+      <div class="finding">
+        <span class="n">04</span>
+        <p><strong>The remaining gains are hard to prove.</strong> A 100-game sample has a 95% interval about 20 points wide. It cannot resolve a 0.4-point effect.</p>
+      </div>
+    </div>
+
+    <div class="callout dark">
+      <span class="label">Bottom line</span>
+      <p>The computer can be made more annoying. It cannot be made much stronger in a fair game without modelling the opponent or changing the rules.</p>
+    </div>
+
+    <div class="cover-bottom">
+      <p>Prepared from the committed engine, generated table, 5,000-game self-play run, and 100-game CPU benchmark.</p>
+      <p>No code was changed for this report. Figures are rounded for layout; exact values appear in the cited reports.</p>
+    </div>
+  </section>
+
+  <!-- ============================ PAGE 2 ============================ -->
+  <section class="page">
+    <div class="page-head">
+      <span>The Ceiling / 01</span>
+      <span class="right">Expected score</span>
+    </div>
+
+    <h2><span class="num">01</span>The expected-score problem is closed</h2>
+    <p class="lede">The table is not an approximation of good play. It is the solution of the game under these rules.</p>
+
+    <div class="cols">
+      <div class="stack">
+        <p>The engine’s state is <span class="mono">(B, u, y)</span>: the set of open boxes, the upper-section total capped at 63, and a flag for whether the Yahtzee box already holds 50. For every state, <span class="mono">W(B,u,y)</span> is the expected score from the start of a turn with optimal play.</p>
+
+        <div class="formula">
+          <span class="mono">W(B,u,y) = Σ<sub>s</sub> P(s) · max<sub>c ∈ B</sub> [ score<sub>c</sub>(s) + bonus(s) + W(B \ c, u′, y′) ]</span>
+          <span class="where">The maximum is over every open box; bonus(s) is the +100 extra-Yahtzee award. The future value is already known for one fewer box, so the table is built by backward induction over all 786,432 reachable states.</span>
+        </div>
+
+        <div class="proof-list">
+          <div class="proof">
+            <span class="pn">1</span>
+            <p><strong>Every turn is enumerated.</strong> There are 252 distinct five-dice states, at most 32 holds, and 7,776 ordered rolls. The turn solver evaluates all of them.</p>
+          </div>
+          <div class="proof">
+            <span class="pn">2</span>
+            <p><strong>Every future state is in the table.</strong> A deviation can only lower the expected sum at the first state where it differs. That is the optimality argument, not a benchmark.</p>
+          </div>
+          <div class="proof">
+            <span class="pn">3</span>
+            <p><strong>The numbers agree.</strong> 5,000 seeded self-play games average <span class="mono">254.16</span> (SD 58.84, 95% CI ±1.63) against the table’s <span class="mono">254.143784</span>.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <span class="label">The training trap</span>
+          <p>A neural network trained to predict score would be fitting a function the table already knows exactly. It could only approximate it, and an approximation cannot beat the fixed point on average.</p>
+        </div>
+
+        <p class="tiny muted" style="margin-top:3mm;">Independent rules check: the generator’s <span class="mono">--official</span> mode reproduces the published 254.5896 benchmark within 0.0005. The difference from 254.143784 is this repo’s permissive extra-Yahtzee rule, not a solver error.</p>
+      </div>
+
+      <div>
+        <figure class="chart">
+          <svg viewBox="0 0 360 224" role="img" aria-labelledby="chart1-title chart1-desc">
+            <title id="chart1-title">Average score per game: heuristic versus exact table</title>
+            <desc id="chart1-desc">The heuristic fallback averages 250.39 points; the exact table is 254.143784; 5,000-game self-play averages 254.16.</desc>
+            <text x="0" y="11" class="svg-title">Average score per game</text>
+            <text x="0" y="24" class="svg-sub">5,000 seeded games, same trainer</text>
+
+            <g transform="translate(0,44)">
+              <line x1="82" y1="0" x2="82" y2="113" class="svg-axis"/>
+              <line x1="82" y1="113" x2="340" y2="113" class="svg-axis"/>
+              <line x1="145.5" y1="0" x2="145.5" y2="113" class="svg-grid"/>
+              <line x1="209" y1="0" x2="209" y2="113" class="svg-grid"/>
+              <line x1="272.5" y1="0" x2="272.5" y2="113" class="svg-grid"/>
+              <line x1="336" y1="0" x2="336" y2="113" class="svg-grid"/>
+
+              <text x="0" y="18" class="svg-label">Heuristic</text>
+              <rect x="82" y="8" width="75.9" height="23" fill="#b9b2a5"/>
+              <text x="163" y="23" class="svg-num">250.39</text>
+
+              <text x="0" y="70" class="svg-label">Exact table</text>
+              <rect x="82" y="60" width="195.0" height="23" fill="#1e3a4f"/>
+              <text x="282.5" y="76" class="svg-num">254.14</text>
+
+              <line x1="281.6" y1="51" x2="281.6" y2="89" stroke="#d9772f" stroke-width="1.7"/>
+              <circle cx="281.6" cy="51" r="2.6" fill="#d9772f"/>
+              <text x="250" y="99" class="svg-note">5,000-game mean 254.16</text>
+
+              <text x="82" y="126" class="svg-tick">248</text>
+              <text x="145.5" y="126" class="svg-tick">250</text>
+              <text x="209" y="126" class="svg-tick">252</text>
+              <text x="272.5" y="126" class="svg-tick">254</text>
+              <text x="336" y="126" class="svg-tick">256</text>
+              <text x="209" y="141" class="svg-tick" text-anchor="middle">points per game</text>
+            </g>
+
+            <text x="0" y="208" class="svg-note">The exact value is a line, not a bar: 254.143784. The self-play result is a validation.</text>
+          </svg>
+          <figcaption>Heuristic fallback: 250.39. Exact table: 254.143784. The 3.75-point gap is the value of solving the rest of the card exactly; it is already captured.</figcaption>
+        </figure>
+
+        <div class="stat-row" style="margin-top:6mm;">
+          <div class="stat"><div class="v">786k</div><div class="l">reachable states in the exact table</div></div>
+          <div class="stat"><div class="v">5,000</div><div class="l">seeded self-play games used to validate it</div></div>
+          <div class="stat"><div class="v">±1.63</div><div class="l">95% confidence interval on the measured mean</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-foot">
+      <span><strong>The Ceiling</strong> / why improving is unlikely</span>
+      <span>Page 2 of 6</span>
+    </div>
+  </section>
+
+  <!-- ============================ PAGE 3 ============================ -->
+  <section class="page">
+    <div class="page-head">
+      <span>The Ceiling / 02</span>
+      <span class="right">Match equity</span>
+    </div>
+
+    <h2><span class="num">02</span>Match play is the only legitimate headroom — and it is thin</h2>
+    <p class="lede">Exact-W maximizes points. Match-W maximizes the chance of beating a particular opponent. The current CPU switches only for the last two rounds.</p>
+
+    <div class="timeline">
+      <div class="timeline-head">
+        <span>Current browser policy</span>
+        <span class="legend">
+          <span class="key"><i style="background:#1e3a4f"></i>Exact-W</span>
+          <span class="key"><i style="background:#d9772f"></i>Match-W</span>
+        </span>
+      </div>
+      <div class="cells">
+        <div class="cell exact">1</div><div class="cell exact">2</div><div class="cell exact">3</div><div class="cell exact">4</div><div class="cell exact">5</div><div class="cell exact">6</div><div class="cell exact">7</div><div class="cell exact">8</div><div class="cell exact">9</div><div class="cell exact">10</div><div class="cell exact">11</div><div class="cell match">12</div><div class="cell match">13</div>
+      </div>
+      <div class="timeline-note">Rounds 1–11 ignore the scoreboard. Rounds 12–13 are exact match-equity search. Two rounds out of thirteen is the entire shipped match-aware surface.</div>
+    </div>
+
+    <div class="cols">
+      <div class="stack">
+        <p><strong>Why the endgame is tractable.</strong> At round 12 the human has exactly one box left, so their category choice is forced. Only their hold policy must be modelled. The CPU’s own turn is still solved by exact dice enumeration, and the human’s future turn is represented by an exact distribution over the shipped Exact-W policy.</p>
+
+        <p><strong>Why the gain is small.</strong> On 50 real round-12 states, Match-W was at least as good on every state: 40 improved, 10 tied, none got worse. The average gain was <span class="mono">+0.425 pp</span>. At round 13 it was <span class="mono">+0.175 pp</span>. Those are exact probabilities, not simulated win rates.</p>
+
+        <table aria-label="Exact state-level comparison">
+          <thead>
+            <tr><th>State</th><th class="num">Exact-W</th><th class="num">Match-W</th><th class="num">Gain</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Start of round 12</td><td class="num">47.1275%</td><td class="num">47.5525%</td><td class="num accent">+0.425 pp</td></tr>
+            <tr><td>Start of round 13</td><td class="num">50.6206%</td><td class="num">50.7958%</td><td class="num accent">+0.175 pp</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout" style="margin-top:4mm;">
+          <span class="label">The benchmark reality</span>
+          <p>The 100-game CPU-role run finished <strong>51–49</strong> against a <strong>50–50</strong> Exact-W control. That is one game. The 95% interval on the 51% result is roughly 41–61%. It is not evidence of a large edge.</p>
+        </div>
+      </div>
+
+      <div>
+        <figure class="chart">
+          <svg viewBox="0 0 360 218" role="img" aria-labelledby="chart2-title chart2-desc">
+            <title id="chart2-title">Exact win-probability gain from Match-W</title>
+            <desc id="chart2-desc">Round 12 gains 0.425 percentage points with a confidence interval from 0.235 to 0.615. Round 13 gains 0.175 points with an interval from 0.038 to 0.313.</desc>
+            <text x="0" y="11" class="svg-title">Exact gain over Exact-W</text>
+            <text x="0" y="24" class="svg-sub">Percentage points, same states</text>
+
+            <g transform="translate(0,47)">
+              <line x1="92" y1="0" x2="92" y2="124" class="svg-zero"/>
+              <line x1="92" y1="124" x2="340" y2="124" class="svg-axis"/>
+              <line x1="92" y1="0" x2="92" y2="124" class="svg-axis"/>
+
+              <line x1="160.9" y1="0" x2="160.9" y2="118" class="svg-grid"/>
+              <line x1="229.7" y1="0" x2="229.7" y2="118" class="svg-grid"/>
+              <line x1="298.6" y1="0" x2="298.6" y2="118" class="svg-grid"/>
+
+              <text x="0" y="42" class="svg-label">Round 12</text>
+              <line x1="171.9" y1="38" x2="301.1" y2="38" stroke="#d9772f" stroke-width="2.2" stroke-linecap="round"/>
+              <line x1="171.9" y1="33" x2="171.9" y2="43" stroke="#d9772f" stroke-width="1.3"/>
+              <line x1="301.1" y1="33" x2="301.1" y2="43" stroke="#d9772f" stroke-width="1.3"/>
+              <circle cx="236.5" cy="38" r="4.2" fill="#d9772f"/>
+              <text x="240" y="26" class="svg-num">+0.425 pp</text>
+              <text x="240" y="51" class="svg-note">95% CI 0.235–0.615</text>
+
+              <text x="0" y="94" class="svg-label">Round 13</text>
+              <line x1="105.0" y1="90" x2="197.7" y2="90" stroke="#d9772f" stroke-width="2.2" stroke-linecap="round"/>
+              <line x1="105.0" y1="85" x2="105.0" y2="95" stroke="#d9772f" stroke-width="1.3"/>
+              <line x1="197.7" y1="85" x2="197.7" y2="95" stroke="#d9772f" stroke-width="1.3"/>
+              <circle cx="151.5" cy="90" r="4.2" fill="#d9772f"/>
+              <text x="201" y="86" class="svg-num">+0.175 pp</text>
+              <text x="201" y="99" class="svg-note">95% CI 0.038–0.313</text>
+
+              <text x="92" y="137" class="svg-tick">0</text>
+              <text x="160.9" y="137" class="svg-tick">0.2</text>
+              <text x="229.7" y="137" class="svg-tick">0.4</text>
+              <text x="298.6" y="137" class="svg-tick">0.6</text>
+              <text x="216" y="153" class="svg-tick" text-anchor="middle">percentage points</text>
+            </g>
+
+            <text x="0" y="207" class="svg-note">40 of 50 states improved; 10 tied; none got worse.</text>
+          </svg>
+          <figcaption>Exact state-level evaluation. The horizontal line is the 95% confidence interval; the dot is the mean gain. The absolute effect is small because only the final two rounds are match-aware.</figcaption>
+        </figure>
+
+        <div class="callout" style="margin-top:4mm;">
+          <span class="label">Scale check</span>
+          <p>A 0.425-point edge is about <strong>one extra win per 235 games</strong> against an Exact-W opponent. You will not feel that in a five-game session.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-foot">
+      <span><strong>The Ceiling</strong> / why improving is unlikely</span>
+      <span>Page 3 of 6</span>
+    </div>
+  </section>
+
+  <!-- ============================ PAGE 4 ============================ -->
+  <section class="page">
+    <div class="page-head">
+      <span>The Ceiling / 03</span>
+      <span class="right">Complexity</span>
+    </div>
+
+    <h2><span class="num">03</span>Exact match play does not scale</h2>
+    <p class="lede">The current solver is exact because it starts at round 12. From round 1, both full cards and both totals become part of the state.</p>
+
+    <div class="cols">
+      <div class="stack">
+        <p>The one-card table has <strong>786,432 reachable states</strong> in a 1,048,576-entry array. A full match state needs two of those cards, plus both current totals, whose turn it is, and the round. Even before the base-score totals, the card-pair product is:</p>
+
+        <div class="formula" style="border-left-color:var(--accent);">
+          <span class="mono">786,432 × 786,432 ≈ 6.2 × 10<sup>11</sup></span>
+          <span class="where">card-pair states before score totals, turn, and round. The real count is larger.</span>
+        </div>
+
+        <p><strong>More search is not the missing ingredient.</strong> The turn solver already enumerates every legal hold and every reroll outcome. When the continuation values are exact, a deeper search adds no information. The only way to improve is to change the <em>value</em> at the end of the turn — from points to match equity — and then the state space changes.</p>
+
+        <p><strong>The exact round-11 pilot proves the trade.</strong> Starting Match-W one round earlier raised the exact average gain from <span class="mono">+0.425 pp</span> to <span class="mono">+1.318 pp</span> in a five-game pilot. It took <strong>349 seconds for five games</strong>, about 70 seconds per game. A Web Worker would stop the interface freezing; it would not stop the wait.</p>
+
+        <div class="callout">
+          <span class="label">The practical wall</span>
+          <p>A full exact table is not a bigger download. It is a different computational universe. The browser can afford the one-card table; it cannot afford the two-card match table.</p>
+        </div>
+      </div>
+
+      <div>
+        <figure class="chart">
+          <svg viewBox="0 0 360 250" role="img" aria-labelledby="chart3-title chart3-desc">
+            <title id="chart3-title">Reachable states on a logarithmic scale</title>
+            <desc id="chart3-desc">The one-card table has 786,432 states. The two-card match state has about 6.2 times 10 to the 11th card pairs before score totals.</desc>
+            <text x="0" y="11" class="svg-title">Reachable states</text>
+            <text x="0" y="24" class="svg-sub">logarithmic scale</text>
+
+            <g transform="translate(0,48)">
+              <line x1="116" y1="0" x2="116" y2="160" class="svg-axis"/>
+              <line x1="116" y1="160" x2="340" y2="160" class="svg-axis"/>
+
+              <line x1="182.9" y1="0" x2="182.9" y2="160" class="svg-grid"/>
+              <line x1="245.7" y1="0" x2="245.7" y2="160" class="svg-grid"/>
+              <line x1="308.6" y1="0" x2="308.6" y2="160" class="svg-grid"/>
+
+              <text x="0" y="37" class="svg-label">One-card W</text>
+              <rect x="116" y="24" width="28.1" height="26" fill="#1e3a4f"/>
+              <text x="150" y="41" class="svg-num">786,432</text>
+
+              <text x="0" y="99" class="svg-label">Two-card match</text>
+              <rect x="116" y="86" width="213.5" height="26" fill="#d9772f"/>
+              <text x="338" y="80" class="svg-num" text-anchor="end">≈ 6.2 × 10¹¹</text>
+              <text x="338" y="122" class="svg-note" text-anchor="end">before totals, turn, round</text>
+
+              <text x="116" y="174" class="svg-tick">10⁵</text>
+              <text x="182.9" y="174" class="svg-tick">10⁷</text>
+              <text x="245.7" y="174" class="svg-tick">10⁹</text>
+              <text x="308.6" y="174" class="svg-tick">10¹¹</text>
+            </g>
+
+            <text x="0" y="238" class="svg-note">The ratio is about 786,000× before the extra match dimensions.</text>
+          </svg>
+          <figcaption>Log scale. The apparent “small” step from one card to two is eight orders of magnitude, not a factor of two. The exact two-card table is not a browser artifact.</figcaption>
+        </figure>
+
+        <div class="stat-row" style="grid-template-columns:1fr 1fr; margin-top:6mm;">
+          <div class="stat"><div class="v">2</div><div class="l">rounds currently solved with match equity</div></div>
+          <div class="stat"><div class="v">70s</div><div class="l">per game for the exact round-11 pilot</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-foot">
+      <span><strong>The Ceiling</strong> / why improving is unlikely</span>
+      <span>Page 4 of 6</span>
+    </div>
+  </section>
+
+  <!-- ============================ PAGE 5 ============================ -->
+  <section class="page">
+    <div class="page-head">
+      <span>The Ceiling / 04</span>
+      <span class="right">Statistics</span>
+    </div>
+
+    <h2><span class="num">04</span>The remaining gains are smaller than the noise</h2>
+    <p class="lede">A 100-game record is a descriptive sample, not a microscope. The effect we are trying to see is about one game in 235.</p>
+
+    <figure class="chart">
+      <svg viewBox="0 0 700 205" role="img" aria-labelledby="chart4-title chart4-desc">
+        <title id="chart4-title">100-game win-rate confidence interval versus the exact Match-W effect</title>
+        <desc id="chart4-desc">The observed 100-game win rate is 51 percent with a 95 percent interval from 41.4 to 60.6 percent. The exact round-12 effect is 50.425 percent, a hairline beside the interval.</desc>
+        <text x="0" y="12" class="svg-title">The benchmark cannot resolve the effect</text>
+        <text x="0" y="26" class="svg-sub">100-game win rate vs the size of the exact gain</text>
+
+        <g transform="translate(0,48)">
+          <line x1="55" y1="0" x2="55" y2="116" class="svg-axis"/>
+          <line x1="55" y1="116" x2="680" y2="116" class="svg-axis"/>
+          <line x1="55" y1="0" x2="55" y2="116" class="svg-axis"/>
+
+          <line x1="159.2" y1="0" x2="159.2" y2="110" class="svg-grid"/>
+          <line x1="263.3" y1="0" x2="263.3" y2="110" class="svg-grid"/>
+          <line x1="367.5" y1="0" x2="367.5" y2="110" class="svg-grid"/>
+          <line x1="471.7" y1="0" x2="471.7" y2="110" class="svg-grid"/>
+          <line x1="575.8" y1="0" x2="575.8" y2="110" class="svg-grid"/>
+
+          <line x1="367.5" y1="0" x2="367.5" y2="110" class="svg-zero"/>
+
+          <text x="0" y="31" class="svg-label">100-game run</text>
+          <rect x="188.3" y="19" width="400" height="24" fill="#dce7e5" stroke="#2f6f6a" stroke-width="1"/>
+          <line x1="388.3" y1="14" x2="388.3" y2="48" stroke="#1e3a4f" stroke-width="2.2"/>
+          <circle cx="388.3" cy="31" r="4.2" fill="#1e3a4f"/>
+          <text x="398" y="35" class="svg-num">51.0% observed</text>
+          <text x="188.3" y="11" class="svg-note">95% CI 41.4–60.6%</text>
+
+          <text x="0" y="85" class="svg-label">Effect size</text>
+          <line x1="376.3" y1="66" x2="376.3" y2="100" stroke="#d9772f" stroke-width="3"/>
+          <circle cx="376.3" cy="83" r="4.2" fill="#d9772f"/>
+          <text x="386" y="80" class="svg-num">+0.425 pp</text>
+          <text x="386" y="94" class="svg-note">plotted at 50% for scale</text>
+
+          <text x="55" y="129" class="svg-tick">35%</text>
+          <text x="159.2" y="129" class="svg-tick">40%</text>
+          <text x="263.3" y="129" class="svg-tick">45%</text>
+          <text x="367.5" y="129" class="svg-tick">50%</text>
+          <text x="471.7" y="129" class="svg-tick">55%</text>
+          <text x="575.8" y="129" class="svg-tick">60%</text>
+          <text x="680" y="129" class="svg-tick" text-anchor="end">65%</text>
+        </g>
+
+        <text x="0" y="194" class="svg-note">The interval is about 20 points wide. The gain is 0.425 points. On this scale it is a hairline.</text>
+      </svg>
+      <figcaption>The 100-game estimate is the wide teal interval. The orange mark plots the exact gain at the 50% reference so its width is directly comparable; the actual round-12 rate is 47.55%, not 50%. The benchmark’s resolution is much larger than the effect.</figcaption>
+    </figure>
+
+    <div class="cols" style="margin-top:5mm;">
+      <div class="stack">
+        <p><strong>What would it take to see it?</strong> For a simple 50/50 comparison at 80% power and two-sided α = 0.05, the approximate sample sizes are:</p>
+
+        <table class="sample-table" aria-label="Games required to detect an effect">
+          <thead>
+            <tr><th>True gain</th><th class="num">Games</th><th>What it establishes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">+0.425 pp</td><td class="num">≈ 109,000</td><td>the current round-12 effect</td></tr>
+            <tr><td class="mono">+1.3 pp</td><td class="num">≈ 11,600</td><td>the round-11 pilot effect</td></tr>
+            <tr><td class="mono">+2 pp</td><td class="num">≈ 4,900</td><td>a small but noticeable edge</td></tr>
+            <tr><td class="mono">+5 pp</td><td class="num">≈ 790</td><td>a large, easily felt edge</td></tr>
+          </tbody>
+        </table>
+
+        <p class="tiny muted" style="margin-top:2mm;">Normal approximation, one-sample win rate against 50%, no pairing. Exact state-level evaluation avoids this cost by evaluating the policy directly.</p>
+      </div>
+
+      <div class="stack">
+        <p><strong>Why a “better” result can be an illusion.</strong> The treatment and control are not paired after round 12: a different hold consumes a different number of dice, so the rest of the game sees a different random stream. A model can also overfit to one seed, or to the Exact-W opponent, and look stronger without being stronger against a human.</p>
+
+        <div class="callout">
+          <span class="label">The right test</span>
+          <p>Use paired states and exact policy evaluation for sub-point effects. Use thousands of games only for effects around 1 point or larger. A 100-game record is a story, not a measurement.</p>
+        </div>
+
+        <p class="tiny muted">The 51–49 result is one game above the 50–50 control. The 95% interval on 51% is roughly 41–61%; it contains both “no edge” and “a large edge.”</p>
+      </div>
+    </div>
+
+    <div class="page-foot">
+      <span><strong>The Ceiling</strong> / why improving is unlikely</span>
+      <span>Page 5 of 6</span>
+    </div>
+  </section>
+
+  <!-- ============================ PAGE 6 ============================ -->
+  <section class="page">
+    <div class="page-head">
+      <span>The Ceiling / 05</span>
+      <span class="right">Conclusion</span>
+    </div>
+
+    <h2><span class="num">05</span>What could still move it — and what would not</h2>
+    <p class="lede">The current CPU is not one clever update away from being much stronger. The remaining levers change the objective, the opponent model, or the rules.</p>
+
+    <table aria-label="Options for improving the CPU">
+      <thead>
+        <tr><th style="width:27%">Lever</th><th style="width:38%">What it changes</th><th>Honest ceiling</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Exact Match-W in round 11</strong><br><span class="tag">exact</span></td>
+          <td>Adds one more round of exact match-equity search on both cards.</td>
+          <td><strong>+1.3 pp</strong> in a five-game pilot; about <strong>70 s/game</strong>. Not browser-viable as-is.</td>
+        </tr>
+        <tr>
+          <td><strong>Approximate all-game match value</strong><br><span class="tag cool">model</span></td>
+          <td>Learns or estimates win probability from both cards, totals, turn, and round; makes the mid-game scoreboard-aware.</td>
+          <td>Unknown. Can be worse than Exact-W if the value model is wrong. Needs paired validation, not a 100-game story.</td>
+        </tr>
+        <tr>
+          <td><strong>Opponent model</strong><br><span class="tag cool">adaptive</span></td>
+          <td>Stops assuming the human plays Exact-W. Learns their holds and banks and chooses a best response.</td>
+          <td>The largest practical gain against a specific person, but not a universal strength increase. It can be exploited by a player who adapts back.</td>
+        </tr>
+        <tr>
+          <td><strong>P(win) instead of P(win) + ½P(tie)</strong><br><span class="tag gray">objective</span></td>
+          <td>Treats ties as losses rather than half-wins; may take more risk.</td>
+          <td>Tiny, and possibly negative for “unbeaten” rate. A tie is still a tie.</td>
+        </tr>
+        <tr>
+          <td><strong>More training on score</strong><br><span class="tag gray">not useful</span></td>
+          <td>Fits a model to predict expected score from the state.</td>
+          <td>Cannot exceed the exact table. It can only approximate 254.143784 less accurately.</td>
+        </tr>
+        <tr>
+          <td><strong>Extra roll, loaded dice, score boost</strong><br><span class="tag gray">unfair</span></td>
+          <td>Changes the game rather than the policy.</td>
+          <td>Arbitrarily hard, but not smarter. This is difficulty, not strength.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout dark" style="margin-top:5mm;">
+      <span class="label">Conclusion</span>
+      <p>Improving this CPU is unlikely because the easiest axis is exhausted: the table is exact, the turn search is exhaustive, and the only exact match-aware extension is both slow and small. What remains is not a better solver. It is a better model of the opponent, an approximation with a new failure mode, or a different game.</p>
+    </div>
+
+    <div class="cols" style="margin-top:5mm;">
+      <div>
+        <h3>Three things that would change the answer</h3>
+        <p class="small"><strong>1. The goal becomes beating one specific human.</strong> Then opponent modelling has real room: the CPU can exploit that player’s actual choices, not an imagined Exact-W clone.</p>
+        <p class="small"><strong>2. The rules change.</strong> A different Yahtzee variant has a different exact table. The current 254.143784 is a property of these rules, not a universal constant.</p>
+        <p class="small"><strong>3. Unfair difficulty is allowed.</strong> An extra roll or loaded dice can make the CPU arbitrarily hard. That is a game-design choice, not an improvement in play.</p>
+      </div>
+      <div>
+        <h3>Sources</h3>
+        <div class="refs">
+          <ol>
+            <li><a href="https://github.com/slayyyyer/yahtzee/blob/main/README.md">README: exact table, 5,000-game validation, Match-W</a></li>
+            <li><a href="https://github.com/slayyyyer/yahtzee/blob/main/reports/yahtzee-matchw-2026-10-28.md">Match-W design and exact state-level evaluation</a></li>
+            <li><a href="https://github.com/slayyyyer/yahtzee/blob/main/reports/yahtzee-cpu-matchw-2026-10-28.md">100-game CPU-role head-to-head benchmark</a></li>
+            <li><a href="https://github.com/slayyyyer/yahtzee/blob/main/tools/solve-optimal.js">tools/solve-optimal.js: table generator</a></li>
+            <li><a href="https://github.com/slayyyyer/yahtzee/blob/main/src/engine.js">src/engine.js: exact turn solver</a></li>
+            <li><a href="https://github.com/slayyyyer/yahtzee/blob/main/src/match-solver.js">src/match-solver.js: browser Match-W endgame</a></li>
+            <li><a href="https://github.com/slayyyyer/yahtzee/blob/main/tools/test-engine.js">tools/test-engine.js: 61 engine checks</a></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-foot">
+      <span><strong>The Ceiling</strong> / why improving is unlikely</span>
+      <span>Page 6 of 6</span>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>
