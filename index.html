@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1712">
+  <title>Yahtzee — Probability Engine</title>
+  <meta name="description" content="Play Yahtzee against a computer that solves every roll with exact probabilities and a self-play-calibrated value function.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+
+  <div class="app">
+    <header class="masthead">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span class="brand-pip bp1"></span>
+          <span class="brand-pip bp2"></span>
+          <span class="brand-pip bp3"></span>
+          <span class="brand-pip bp4"></span>
+          <span class="brand-pip bp5"></span>
+        </div>
+        <div class="brand-text">
+          <h1>Yahtzee<span class="dot">.</span></h1>
+          <p>Play the odds</p>
+        </div>
+      </div>
+
+      <div class="masthead-actions">
+        <div class="record" id="record" title="Your results this browser">
+          <span class="record-label">Record</span>
+          <span id="recordValue">0–0</span>
+        </div>
+        <button class="chip-btn" id="coachBtn" type="button" aria-pressed="true">Coach on</button>
+        <button class="chip-btn" id="rulesBtn" type="button">Rules</button>
+        <button class="chip-btn chip-primary" id="newBtn" type="button">New game</button>
+      </div>
+    </header>
+
+    <main class="table">
+      <section class="stage" aria-label="Play area">
+        <div class="turn-head">
+          <div class="turn-who">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="turnName" aria-live="polite">Your turn</span>
+          </div>
+          <span class="rolls" id="rollsBadge">3 rolls</span>
+        </div>
+
+        <div class="dice-tray" id="diceTray" role="group" aria-label="Dice"></div>
+
+        <div class="play-controls">
+          <button id="rollBtn" class="roll-btn" type="button">Roll dice</button>
+          <p class="prompt" id="prompt">Roll to start your turn. Click a die to hold it.</p>
+        </div>
+
+        <div class="insight" id="insight">
+          <div class="insight-head">
+            <span class="insight-tag" id="insightTag">Coach</span>
+            <span class="insight-note" id="insightNote">exact probabilities</span>
+          </div>
+          <div class="insight-body" id="insightBody"></div>
+        </div>
+      </section>
+
+      <aside class="score-panel" aria-label="Scorecard">
+        <div class="scorecard-title">
+          <div>
+            <h2>Scorecard</h2>
+            <p>Six upper boxes · seven lower boxes</p>
+          </div>
+          <div class="mini-legend" aria-hidden="true">
+            <span class="legend-you">You</span>
+            <span class="legend-cpu">CPU</span>
+          </div>
+        </div>
+        <div class="scorecard-scroll">
+          <table class="scorecard" id="scorecard">
+            <thead>
+              <tr>
+                <th class="cat-col">Category</th>
+                <th>You</th>
+                <th>CPU</th>
+              </tr>
+            </thead>
+            <tbody id="scoreBody"></tbody>
+          </table>
+        </div>
+        <p class="scorecard-foot">Upper bonus +35 at 63 · extra Yahtzee +100</p>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <span>Every roll enumerated exactly · 7,776 outcomes</span>
+      <span class="footer-right" id="recordNote">A near-optimal opponent, trained by self-play.</span>
+    </footer>
+  </div>
+
+  <div class="sr-only" id="live" aria-live="polite"></div>
+
+  <div class="loading" id="loading">
+    <div class="loading-die" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <p>Solving the dice…</p>
+  </div>
+
+  <!-- Rules -->
+  <div class="modal" id="rulesModal" hidden>
+    <div class="modal-card rules-card" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+      <button class="modal-close" type="button" data-close="rulesModal" aria-label="Close rules">×</button>
+      <p class="eyebrow">How to play</p>
+      <h2 id="rulesTitle">The scorecard</h2>
+
+      <div class="rules-grid">
+        <section>
+          <h3>Upper section</h3>
+          <p><strong>Ones through Sixes.</strong> Score the sum of all dice showing that number. Reach <strong>63</strong> or more across the six upper boxes to earn the <strong>35-point upper bonus</strong>.</p>
+
+          <h3>Lower section</h3>
+          <ul>
+            <li><b>Three of a Kind</b> — three or more alike: sum of all five dice.</li>
+            <li><b>Four of a Kind</b> — four or more alike: sum of all five dice.</li>
+            <li><b>Full House</b> — three of one number and two of another: <b>25</b>.</li>
+            <li><b>Small Straight</b> — four dice in sequence: <b>30</b>.</li>
+            <li><b>Large Straight</b> — five dice in sequence: <b>40</b>.</li>
+            <li><b>Yahtzee</b> — five of a kind: <b>50</b>.</li>
+            <li><b>Chance</b> — sum of all five dice.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3>Bonuses</h3>
+          <p><strong>Upper bonus.</strong> 35 points when the upper section totals 63 or more.</p>
+          <p><strong>Yahtzee bonus.</strong> After the Yahtzee box has been scored for 50, every extra five-of-a-kind is worth <strong>+100</strong>. A five-of-a-kind also counts as a full house (joker rule), and you may bank it in any open box.</p>
+          <p class="rule-note">You get three rolls each turn. Hold any dice between rolls, then bank the result in one open box. You may stop and bank after any roll.</p>
+
+          <h3>The opponent</h3>
+          <p>The computer does not guess. It enumerates every distinct outcome of every remaining roll, solves each turn backwards by dynamic programming, and scores into the box that maximises its expected final total. The value of the boxes it has left comes from a model calibrated with tens of thousands of seeded self-play games.</p>
+          <p class="rule-note">It plays close to the theoretical optimum of <b>254.59</b> points.</p>
+        </section>
+      </div>
+
+      <button class="btn-ghost-wide" type="button" data-close="rulesModal">Got it</button>
+    </div>
+  </div>
+
+  <!-- Game over -->
+  <div class="modal" id="overModal" hidden>
+    <div class="modal-card over-card" role="dialog" aria-modal="true" aria-labelledby="overTitle">
+      <p class="eyebrow" id="overEyebrow">Final scores</p>
+      <h2 id="overTitle">You win.</h2>
+      <div class="final-scores" id="finalScores"></div>
+      <div class="final-detail" id="finalDetail"></div>
+      <div class="over-actions">
+        <button class="btn-gold" type="button" id="playAgain">Play again</button>
+        <button class="btn-ghost-wide" type="button" data-close="overModal">Look at the board</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/engine.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>

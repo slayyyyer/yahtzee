@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Yahtzee die">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdf6"/>
+      <stop offset="0.6" stop-color="#f0e2c6"/>
+      <stop offset="1" stop-color="#dfcda8"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.2" r="0.8">
+      <stop offset="0" stop-color="#d9b567" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#d9b567" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0e1f18"/>
+  <rect width="64" height="64" rx="14" fill="url(#glow)"/>
+  <g transform="rotate(-7 32 32)">
+    <rect x="11" y="11" width="42" height="42" rx="10" fill="url(#paper)"
+          stroke="#fffaf0" stroke-width="1"/>
+    <g fill="#233229">
+      <circle cx="22.5" cy="22.5" r="3.1"/>
+      <circle cx="41.5" cy="22.5" r="3.1"/>
+      <circle cx="32" cy="32" r="3.1"/>
+      <circle cx="22.5" cy="41.5" r="3.1"/>
+      <circle cx="41.5" cy="41.5" r="3.1"/>
+    </g>
+  </g>
+</svg>

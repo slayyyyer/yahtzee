@@ -1,0 +1,5 @@
+{
+  "title": "Yahtzee: Probability Engine",
+  "description": "Play Yahtzee against a near-optimal computer that solves every roll with exact probabilities.",
+  "icon": "icon.svg"
+}
