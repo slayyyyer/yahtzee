@@ -7,8 +7,10 @@ function calibrated by seeded self-play.
 
 ## Play
 
-Open [index.html](index.html) in a modern browser. There is no install, build
-step, dependency or network request.
+**Play online:** <https://slayyyyer.github.io/yahtzee/>
+
+Or open [index.html](index.html) in a modern browser. There is no install,
+build step, dependency or network request.
 
 Optional local server:
 
